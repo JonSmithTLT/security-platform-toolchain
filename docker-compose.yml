@@ -21,13 +21,13 @@ services:
 
   base:
     <<: *common
-    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-base:${TAG:-latest}
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
     build:
       context: images/base
 
   c-cpp-analysis:
     <<: *common
-    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-c-cpp-analysis:${TAG:-latest}
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-c-cpp-analysis:${TAG:-latest}
     build:
       context: images/c-cpp-analysis
     environment:
@@ -41,7 +41,7 @@ services:
 
   fuzzing:
     <<: *common
-    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-fuzzing:${TAG:-latest}
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-fuzzing:${TAG:-latest}
     build:
       context: images/fuzzing
     environment:
@@ -58,7 +58,7 @@ services:
 
   gitnexus:
     <<: *common
-    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-gitnexus:${TAG:-latest}
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-gitnexus:${TAG:-latest}
     build:
       context: images/gitnexus
     environment:
@@ -76,7 +76,7 @@ services:
 
   semgrep:
     <<: *common
-    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-semgrep:${TAG:-latest}
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-semgrep:${TAG:-latest}
     build:
       context: images/semgrep
     environment:
@@ -92,7 +92,7 @@ services:
 
   codeql:
     <<: *common
-    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-codeql:${TAG:-latest}
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-codeql:${TAG:-latest}
     build:
       context: images/codeql
     environment:
@@ -108,7 +108,7 @@ services:
 
   sbom:
     <<: *common
-    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-sbom:${TAG:-latest}
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-sbom:${TAG:-latest}
     build:
       context: images/sbom
     environment:
@@ -123,7 +123,7 @@ services:
 
   secrets:
     <<: *common
-    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-secrets:${TAG:-latest}
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-secrets:${TAG:-latest}
     build:
       context: images/secrets
     environment:
@@ -137,7 +137,7 @@ services:
 
   corpus-tools:
     <<: *common
-    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-corpus-tools:${TAG:-latest}
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-corpus-tools:${TAG:-latest}
     build:
       context: images/corpus-tools
     environment:
@@ -151,7 +151,7 @@ services:
 
   replay-runner:
     <<: *common
-    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-replay-runner:${TAG:-latest}
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-replay-runner:${TAG:-latest}
     build:
       context: images/replay-runner
     environment:
@@ -166,7 +166,7 @@ services:
 
   symbolic:
     <<: *common
-    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-symbolic:${TAG:-latest}
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-symbolic:${TAG:-latest}
     build:
       context: images/symbolic
     environment:

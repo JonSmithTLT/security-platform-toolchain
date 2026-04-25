@@ -10,10 +10,10 @@ generated locally and distributed via Nexus, S3, or physical media.
 
 ```bash
 # Build all images first
-make build-all REGISTRY=ghcr.io/jonsmithtlt TAG=1.2.3
+make build-all REGISTRY=registry.internal/security-platform TAG=1.2.3
 
 # Create a tar archive containing all images
-make bundle REGISTRY=ghcr.io/jonsmithtlt TAG=1.2.3
+make bundle REGISTRY=registry.internal/security-platform TAG=1.2.3
 
 # Output: offline-bundles/out/spt-bundle-1.2.3.tar
 #         offline-bundles/out/spt-bundle-1.2.3.tar.sha256
@@ -49,7 +49,7 @@ docker images | grep spt-
 INTERNAL_REGISTRY=registry.internal.example.com:5000
 
 for img in base c-cpp-analysis fuzzing gitnexus semgrep codeql sbom secrets corpus-tools replay-runner symbolic; do
-    docker tag ghcr.io/jonsmithtlt/spt-${img}:1.2.3 \
+    docker tag registry.internal/security-platform/spt-${img}:1.2.3 \
                ${INTERNAL_REGISTRY}/spt-${img}:1.2.3
     docker push ${INTERNAL_REGISTRY}/spt-${img}:1.2.3
 done

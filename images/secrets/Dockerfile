@@ -1,7 +1,7 @@
 # images/secrets/Dockerfile
 # Secret scanning with Gitleaks and TruffleHog.
 
-FROM ghcr.io/jonsmithtlt/spt-base:latest
+FROM registry.internal/security-platform/spt-base:latest
 
 LABEL org.opencontainers.image.description="SPT secrets scanning image"
 

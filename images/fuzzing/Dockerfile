@@ -1,7 +1,7 @@
 # images/fuzzing/Dockerfile
 # AFL++ / libFuzzer harness image.
 
-FROM ghcr.io/jonsmithtlt/spt-base:latest
+FROM registry.internal/security-platform/spt-base:latest
 
 LABEL org.opencontainers.image.description="SPT fuzzing image (AFL++)"
 

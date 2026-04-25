@@ -1,7 +1,7 @@
 # images/c-cpp-analysis/Dockerfile
 # Static analysis for C/C++ projects using clang-tidy, cppcheck, and scan-build.
 
-FROM ghcr.io/jonsmithtlt/spt-base:latest
+FROM registry.internal/security-platform/spt-base:latest
 
 LABEL org.opencontainers.image.description="SPT C/C++ static analysis image"
 

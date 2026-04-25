@@ -1,7 +1,7 @@
 # security-platform-toolchain Makefile
 # Targets: build-all, per-image builds, lint, test, bundle
 
-REGISTRY   ?= ghcr.io/jonsmithtlt
+REGISTRY   ?= registry.internal/security-platform
 TAG        ?= latest
 IMAGES     := base c-cpp-analysis fuzzing gitnexus semgrep codeql sbom secrets corpus-tools replay-runner symbolic
 

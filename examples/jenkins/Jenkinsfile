@@ -9,7 +9,7 @@ pipeline {
     parameters {
         string(name: 'TARGET_REPO',     defaultValue: '',        description: 'Git URL of the repository to analyse')
         string(name: 'GIT_REF',         defaultValue: 'main',    description: 'Branch, tag, or SHA to check out')
-        string(name: 'REGISTRY',        defaultValue: 'ghcr.io/jonsmithtlt', description: 'Image registry prefix')
+        string(name: 'REGISTRY',        defaultValue: 'registry.internal/security-platform', description: 'Image registry prefix')
         string(name: 'TAG',             defaultValue: 'latest',  description: 'Image tag')
         string(name: 'CODEQL_LANGUAGE', defaultValue: 'cpp',     description: 'CodeQL language pack')
         booleanParam(name: 'RUN_FUZZING', defaultValue: false,   description: 'Enable fuzzing stage (slow)')

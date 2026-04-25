@@ -32,5 +32,5 @@ docker run --rm \
   -v $(pwd)/queries/codeql:/queries:ro \
   -v $(pwd):/workspace:ro \
   -v artifacts:/artifacts \
-  ghcr.io/jonsmithtlt/spt-codeql:latest
+  registry.internal/security-platform/spt-codeql:latest
 ```

@@ -33,7 +33,7 @@ All tool images run as `spt` (UID 1001 / GID 1001).
 # Run from the repository root (context must be repo root so common/ and schemas/ are accessible)
 docker build \
   -f images/base/Dockerfile \
-  -t ghcr.io/jonsmithtlt/spt-base:latest \
+  -t registry.internal/security-platform/spt-base:latest \
   .
 ```
 

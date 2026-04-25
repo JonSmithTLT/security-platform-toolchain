@@ -1,7 +1,7 @@
 # images/semgrep/Dockerfile
 # Semgrep SAST scanner with custom rule support.
 
-FROM ghcr.io/jonsmithtlt/spt-base:latest
+FROM registry.internal/security-platform/spt-base:latest
 
 LABEL org.opencontainers.image.description="SPT Semgrep SAST image"
 

@@ -1,7 +1,7 @@
 # images/corpus-tools/Dockerfile
 # Corpus management utilities for fuzzing (minimise, deduplicate, merge).
 
-FROM ghcr.io/jonsmithtlt/spt-base:latest
+FROM registry.internal/security-platform/spt-base:latest
 
 LABEL org.opencontainers.image.description="SPT corpus management tools"
 

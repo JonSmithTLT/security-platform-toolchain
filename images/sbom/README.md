@@ -27,5 +27,5 @@ docker run --rm \
   -v artifacts:/artifacts \
   -e TARGET_REPO="alpine:3.19" \
   -e SBOM_FORMAT=spdx-json \
-  ghcr.io/jonsmithtlt/spt-sbom:latest
+  registry.internal/security-platform/spt-sbom:latest
 ```

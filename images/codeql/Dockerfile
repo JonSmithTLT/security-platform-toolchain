@@ -1,7 +1,7 @@
 # images/codeql/Dockerfile
 # CodeQL CLI wrapper for database creation and query execution.
 
-FROM ghcr.io/jonsmithtlt/spt-base:latest
+FROM registry.internal/security-platform/spt-base:latest
 
 LABEL org.opencontainers.image.description="SPT CodeQL analysis image"
 
