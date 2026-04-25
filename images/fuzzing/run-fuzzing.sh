@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # images/fuzzing/run-fuzzing.sh
-# Runs AFL++ against a compiled fuzz target, then collects crash artefacts.
+# Runs AFL++ against a compiled fuzz target, then collects crash artifacts.
 
 set -euo pipefail
 # shellcheck source=/usr/local/lib/spt/logging.sh

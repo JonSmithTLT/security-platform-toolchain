@@ -83,8 +83,10 @@ where
   (
     call.getTarget().getName() in ["printf", "fprintf", "sprintf",
                                     "snprintf", "vprintf", "vfprintf"] and
-    idx = call.getTarget().getName().matches("%fprintf") or
-    call.getTarget().getName().matches("%printf") and idx = 0
+    (
+      (call.getTarget().getName().matches("%fprintf") and idx = 1) or
+      (call.getTarget().getName().matches("%printf") and idx = 0)
+    )
   ) and
   not call.getArgument(idx) instanceof StringLiteral
 select call.getArgument(idx),

@@ -14,37 +14,37 @@ all: build-all
 build-all: $(IMAGES)
 
 base:
-	docker build -t $(REGISTRY)/spt-base:$(TAG) images/base/
+	docker build -t $(REGISTRY)/spt-base:$(TAG) -f images/base/Dockerfile .
 
 c-cpp-analysis: base
-	docker build -t $(REGISTRY)/spt-c-cpp-analysis:$(TAG) images/c-cpp-analysis/
+	docker build -t $(REGISTRY)/spt-c-cpp-analysis:$(TAG) -f images/c-cpp-analysis/Dockerfile .
 
 fuzzing: base
-	docker build -t $(REGISTRY)/spt-fuzzing:$(TAG) images/fuzzing/
+	docker build -t $(REGISTRY)/spt-fuzzing:$(TAG) -f images/fuzzing/Dockerfile .
 
 gitnexus: base
-	docker build -t $(REGISTRY)/spt-gitnexus:$(TAG) images/gitnexus/
+	docker build -t $(REGISTRY)/spt-gitnexus:$(TAG) -f images/gitnexus/Dockerfile .
 
 semgrep: base
-	docker build -t $(REGISTRY)/spt-semgrep:$(TAG) images/semgrep/
+	docker build -t $(REGISTRY)/spt-semgrep:$(TAG) -f images/semgrep/Dockerfile .
 
 codeql: base
-	docker build -t $(REGISTRY)/spt-codeql:$(TAG) images/codeql/
+	docker build -t $(REGISTRY)/spt-codeql:$(TAG) -f images/codeql/Dockerfile .
 
 sbom: base
-	docker build -t $(REGISTRY)/spt-sbom:$(TAG) images/sbom/
+	docker build -t $(REGISTRY)/spt-sbom:$(TAG) -f images/sbom/Dockerfile .
 
 secrets: base
-	docker build -t $(REGISTRY)/spt-secrets:$(TAG) images/secrets/
+	docker build -t $(REGISTRY)/spt-secrets:$(TAG) -f images/secrets/Dockerfile .
 
 corpus-tools: base
-	docker build -t $(REGISTRY)/spt-corpus-tools:$(TAG) images/corpus-tools/
+	docker build -t $(REGISTRY)/spt-corpus-tools:$(TAG) -f images/corpus-tools/Dockerfile .
 
 replay-runner: base
-	docker build -t $(REGISTRY)/spt-replay-runner:$(TAG) images/replay-runner/
+	docker build -t $(REGISTRY)/spt-replay-runner:$(TAG) -f images/replay-runner/Dockerfile .
 
 symbolic: base
-	docker build -t $(REGISTRY)/spt-symbolic:$(TAG) images/symbolic/
+	docker build -t $(REGISTRY)/spt-symbolic:$(TAG) -f images/symbolic/Dockerfile .
 
 ## ── Lint ───────────────────────────────────────────────────────────────────
 
@@ -102,5 +102,5 @@ push: build-all
 ## ── Helpers ─────────────────────────────────────────────────────────────────
 
 clean:
-	@echo "==> Removing generated bundle artefacts"
+	@echo "==> Removing generated bundle artifacts"
 	@rm -rf $(BUNDLE_DIR)

@@ -1,5 +1,5 @@
-// queries/codeql/qlpack.yml
-// CodeQL pack definition for security-platform-toolchain queries.
+# queries/codeql/qlpack.yml
+# CodeQL pack definition for security-platform-toolchain queries.
 name: jonsmithtlt/spt-queries
 version: 1.0.0
 description: Security queries for security-platform-toolchain
