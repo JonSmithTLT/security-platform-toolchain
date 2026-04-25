@@ -7,6 +7,10 @@ BASE_IMAGE ?= $(REGISTRY)/spt-base:$(TAG)
 IMAGES     := base schema-validator result-normalizers c-cpp-analysis coverage-tools fuzzing replay-runner sbom osv-scanner secrets image-scanner re-lightweight yara intel-ingest rag-indexer diff-impact ghidra-base ghidra-exporter ghidra-mcp eval-runner gitnexus semgrep codeql corpus-tools symbolic
 TARGET_REGISTRY ?= $(REGISTRY)
 SOURCE_REGISTRY ?= $(REGISTRY)
+GHIDRA_VERSION ?= 12.0.4
+GHIDRA_DATE ?= 20260303
+GHIDRA_MCP_REPO ?= https://github.com/bethington/ghidra-mcp.git
+GHIDRA_MCP_REF ?= v5.5.0
 
 .PHONY: all build-all lint test test-offline verify-offline functional-smoke bundle load-bundle image-list pull-bundle push push-registry clean $(IMAGES)
 
@@ -65,13 +69,13 @@ diff-impact: base
 	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-diff-impact:$(TAG) -f images/diff-impact/Dockerfile .
 
 ghidra-base: base
-	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-ghidra-base:$(TAG) -f images/ghidra-base/Dockerfile .
+	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) --build-arg GHIDRA_VERSION=$(GHIDRA_VERSION) --build-arg GHIDRA_DATE=$(GHIDRA_DATE) -t $(REGISTRY)/spt-ghidra-base:$(TAG) -f images/ghidra-base/Dockerfile .
 
 ghidra-exporter: ghidra-base
 	docker build --build-arg GHIDRA_BASE_IMAGE=$(REGISTRY)/spt-ghidra-base:$(TAG) -t $(REGISTRY)/spt-ghidra-exporter:$(TAG) -f images/ghidra-exporter/Dockerfile .
 
 ghidra-mcp: ghidra-base
-	docker build --build-arg GHIDRA_BASE_IMAGE=$(REGISTRY)/spt-ghidra-base:$(TAG) -t $(REGISTRY)/spt-ghidra-mcp:$(TAG) -f images/ghidra-mcp/Dockerfile .
+	docker build --build-arg GHIDRA_BASE_IMAGE=$(REGISTRY)/spt-ghidra-base:$(TAG) --build-arg GHIDRA_VERSION=$(GHIDRA_VERSION) --build-arg GHIDRA_MCP_REPO=$(GHIDRA_MCP_REPO) --build-arg GHIDRA_MCP_REF=$(GHIDRA_MCP_REF) -t $(REGISTRY)/spt-ghidra-mcp:$(TAG) -f images/ghidra-mcp/Dockerfile .
 
 eval-runner: base
 	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-eval-runner:$(TAG) -f images/eval-runner/Dockerfile .

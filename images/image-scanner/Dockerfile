@@ -24,6 +24,7 @@ USER spt
 
 ENV IMAGE_SCAN_TARGET=/workspace \
     GRYPE_DB_AUTO_UPDATE=false \
+    GRYPE_CHECK_FOR_APP_UPDATE=false \
     GRYPE_DB_CACHE_DIR=/opt/grype/db \
     ARTIFACTS_DIR=/artifacts
 

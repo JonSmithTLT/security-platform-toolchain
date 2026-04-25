@@ -202,12 +202,16 @@ docker run --rm --network none \
     -e ARTIFACTS_DIR=/artifacts \
     -e IMAGE_SCAN_TARGET=/workspace \
     -e GRYPE_DB_AUTO_UPDATE=false \
+    -e GRYPE_CHECK_FOR_APP_UPDATE=false \
     -v "${FIXTURE_DIR}:/workspace:ro" \
     -v "${OUT_DIR}/image-scanner:/artifacts" \
     "$(image image-scanner)" || true
 finalize_artifacts image-scanner "${OUT_DIR}/image-scanner"
 assert_contract image-scanner "${OUT_DIR}/image-scanner"
 assert_file "${OUT_DIR}/image-scanner/results/image-scanner/raw/grype.json"
+if grep -Eiq "failed to fetch latest version|toolbox-data\.anchore\.io|network is unreachable" "${OUT_DIR}/image-scanner/logs/image-scanner.log"; then
+    fail "image-scanner attempted a network update/version check"
+fi
 
 log "C/C++ analysis executes cppcheck offline"
 mkdir -p "${OUT_DIR}/c-cpp-analysis"
@@ -311,5 +315,19 @@ docker run --rm --network none \
 finalize_artifacts eval-runner "${OUT_DIR}/eval-runner"
 assert_contract eval-runner "${OUT_DIR}/eval-runner"
 assert_file "${OUT_DIR}/eval-runner/results/eval-runner/raw/eval-results.json"
+
+log "Ghidra MCP exposes bundled MCP runtime metadata"
+mkdir -p "${OUT_DIR}/ghidra-mcp"
+docker run --rm --network none \
+    -e JOB_ID=functional-ghidra-mcp \
+    -e ARTIFACTS_DIR=/artifacts \
+    -e GHIDRA_MCP_MODE=smoke \
+    -v "${OUT_DIR}/ghidra-mcp:/artifacts" \
+    "$(image ghidra-mcp)"
+finalize_artifacts ghidra-mcp "${OUT_DIR}/ghidra-mcp"
+assert_contract ghidra-mcp "${OUT_DIR}/ghidra-mcp"
+assert_file "${OUT_DIR}/ghidra-mcp/results/ghidra-mcp/raw/environment.json"
+assert_file "${OUT_DIR}/ghidra-mcp/results/ghidra-mcp/raw/bridge-help.txt"
+assert_file "${OUT_DIR}/ghidra-mcp/results/ghidra-mcp/raw/python-mcp-sdk.txt"
 
 log "Functional smoke test passed"

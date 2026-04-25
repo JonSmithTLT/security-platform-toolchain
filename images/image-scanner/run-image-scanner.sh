@@ -8,6 +8,10 @@ source /usr/local/lib/spt/logging.sh
 : "${IMAGE_SCAN_TARGET:=/workspace}"
 : "${ARTIFACTS_DIR:=/artifacts}"
 : "${GRYPE_DB_AUTO_UPDATE:=false}"
+: "${GRYPE_CHECK_FOR_APP_UPDATE:=false}"
+
+export GRYPE_DB_AUTO_UPDATE
+export GRYPE_CHECK_FOR_APP_UPDATE
 
 RESULTS_DIR="${ARTIFACTS_DIR}/results/image-scanner"
 RAW_DIR="${RESULTS_DIR}/raw"
@@ -19,6 +23,7 @@ RAW_OUT="${RAW_DIR}/grype.json"
 
 log_info "Running Grype"
 log_info "  Target : ${IMAGE_SCAN_TARGET}"
+log_info "  Offline: GRYPE_DB_AUTO_UPDATE=${GRYPE_DB_AUTO_UPDATE}, GRYPE_CHECK_FOR_APP_UPDATE=${GRYPE_CHECK_FOR_APP_UPDATE}"
 
 grype "${IMAGE_SCAN_TARGET}" \
     -o json \
