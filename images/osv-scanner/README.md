@@ -13,9 +13,9 @@ OSV_SCANNER_LOCAL_DB_CACHE_DIRECTORY=/osv-db
 to native OSV Scanner flags:
 
 ```text
+OSV_SCANNER_LOCAL_DB_CACHE_DIRECTORY=/osv-db \
 osv-scanner scan source \
   --offline-vulnerabilities \
-  --local-db-cache-directory /osv-db \
   --format json \
   --output-file /artifacts/results/osv-scanner/raw/osv-scanner.json \
   /workspace

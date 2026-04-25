@@ -148,6 +148,14 @@ Gitleaks execution, Grype execution, C/C++ analysis execution, coverage output,
 YARA scanning, lightweight RE triage, intel ingestion, RAG indexing,
 diff-impact output, and eval execution.
 
+Smoke test levels:
+
+| Target | Purpose |
+|--------|---------|
+| `make verify-offline` | Image-only startup check. Every image starts with Docker networking disabled. |
+| `make functional-smoke` | Fixture-data check. Tiny local fixtures prove implemented tools work offline. |
+| `make data-bundle-smoke` | Full-data discovery check. Mounted/staged data bundle contains expected OSV, YARA, Semgrep, CodeQL, and intel datasets. |
+
 ### Create an offline data bundle
 
 Stage vulnerability intelligence and rule data under `data-bundles/sources/`,
@@ -162,6 +170,31 @@ make data-verify TAG=2026-04-25
 Use this for OSV databases, CWE, CAPEC, MITRE ATT&CK, CVE/NVD, CISA KEV,
 EPSS, advisory databases, YARA rules, Semgrep rules, CodeQL packs, and vendor
 advisories.
+
+Normal users can import and run the image bundle without importing the data
+bundle. The data bundle is optional, but required for full offline
+vulnerability, advisory, rule, and intelligence coverage.
+
+Full data bundles may trigger AV/DLP because upstream advisory and rule sources
+can contain PoC strings, exploit commands, webshell snippets, suspicious
+indicators, or scanner fixtures. See [`SECURITY_NOTES.md`](SECURITY_NOTES.md)
+before distributing the data bundle.
+
+Bundle variants:
+
+| Variant | Description |
+|---------|-------------|
+| `intel-data-full-<TAG>.tar.zst` | Upstream advisory/intel content as-is. Maximum coverage; may trigger AV/DLP. |
+| `intel-data-sanitized-<TAG>.tar.zst` | Excludes or redacts PoC/exploit-heavy records. Reduced coverage. |
+
+Current release notes:
+
+- Images are built and smoke-tested offline.
+- Checksums are included for full tarballs and split parts.
+- Image bundle is roughly 10 GB and split into GitHub Release asset chunks.
+- Data bundle is separate because advisory/intel content may trigger AV/DLP.
+- Known AV-sensitive source: GitHub Advisory Database entries can include
+  PoC/webshell/RCE strings and may be flagged by Defender or similar tooling.
 
 ---
 

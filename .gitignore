@@ -57,6 +57,12 @@ dkms.conf
 # security-platform-toolchain — generated artefacts
 offline-bundles/out/
 data-bundles/out/
+spt-bundle-*.tar
+spt-data-bundle-*.tar
+*.rebuilt.tar
+data-bundles/sources/*
+!data-bundles/sources/.gitkeep
+!data-bundles/sources/README.md
 artifacts/
 artifacts-smoke/
 .tmp-smoke/

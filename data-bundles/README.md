@@ -38,17 +38,31 @@ Fetch or stage datasets under `data-bundles/sources/`, then bundle them:
 ```bash
 make data-fetch TAG=2026-04-25
 make data-bundle TAG=2026-04-25
+make data-bundle-smoke TAG=2026-04-25
 ```
 
 `make data-fetch` runs every script under `data-bundles/fetch/`.
+`scripts/export-data-bundle.sh` also writes a source manifest, source
+checksums, full tar checksum, and split part checksums under
+`data-bundles/out/`.
 
 ## Air-Gapped Flow
 
 ```bash
+sha256sum -c spt-data-bundle-2026-04-25.parts.sha256
+cat spt-data-bundle-2026-04-25.tar.part-* > spt-data-bundle-2026-04-25.tar
 sha256sum -c spt-data-bundle-2026-04-25.tar.sha256
 mkdir -p /opt/spt-data
 tar -xf spt-data-bundle-2026-04-25.tar -C /opt/spt-data
 ```
+
+The data bundle is optional. Import the image bundle by itself for image-only
+or fixture-based smoke tests. Import the data bundle when full offline
+vulnerability/intelligence coverage is required.
+
+Full data bundles may trigger AV/DLP because public advisory and rule datasets
+can include PoC strings, exploit commands, webshell snippets, suspicious
+indicators, and scanner fixtures. See `SECURITY_NOTES.md`.
 
 Mount the data read-only into tools:
 
@@ -83,14 +97,19 @@ notes with each dataset.
 ## Fetch Configuration
 
 Most public sources have default URLs. Organization-specific rule/advisory
-sources are opt-in through environment variables.
+sources can be overridden through environment variables.
 
 | Variable | Purpose |
 |----------|---------|
 | `NVD_YEARS` | NVD feeds to fetch. Default: `modified recent`. Example: `2024 2025 modified recent` |
-| `YARA_RULES_REPO_URL` | Optional Git repo for approved YARA rules |
-| `SEMGREP_RULES_REPO_URL` | Optional Git repo for approved Semgrep rules. Defaults to repo-local starter rules |
-| `CODEQL_PACKS` | Optional CodeQL pack names to download with `codeql pack download` |
+| `YARA_RULES_REPO_URL` | Optional Git repo for approved YARA rules. If unset, fetches YARA Forge |
+| `YARA_FORGE_RULESET` | YARA Forge ruleset to fetch when `YARA_RULES_REPO_URL` is unset. Default: `extended` |
+| `SEMGREP_RULES_REPO_URL` | Semgrep rules repo. Default: `https://github.com/semgrep/semgrep-rules.git` |
+| `CODEQL_PACKS` | CodeQL packs to download with `codeql pack download`. Default: `codeql/cpp-queries codeql/python-queries codeql/rust-queries` |
+| `CODEQL_IMAGE` | CodeQL image used for pack downloads. Default: `$REGISTRY/spt-codeql:$TAG` |
+| `CODEQL_USE_DOCKER` | Use Docker for CodeQL pack downloads when available. Default: `auto`; set `0` to force local `codeql` |
+| `OSV_FETCH_MODE` | OSV DB fetch mode. Default: `direct`; set `scanner` to use local `osv-scanner` |
+| `OSV_ECOSYSTEMS` | Optional space-separated OSV ecosystems to fetch. Default: all ecosystems from OSV |
 | `VENDOR_ADVISORY_URLS` | Space-separated vendor advisory URLs to fetch |
 | `CISA_KEV_URL` | Override CISA KEV URL |
 | `CWE_URL` | Override CWE URL |
@@ -102,12 +121,36 @@ sources are opt-in through environment variables.
 
 ## OSV Offline Cache
 
-The OSV fetcher expects `osv-scanner` on the connected host. It runs OSV
-Scanner's offline database download workflow into:
+The OSV fetcher downloads OSV ecosystem zip databases directly into the cache
+layout expected by OSV Scanner:
 
 ```text
-data-bundles/sources/osv/
+data-bundles/sources/osv/osv-scanner/<ecosystem>/all.zip
 ```
 
-If `osv-scanner` is not installed, the fetcher leaves the directory in place
-with metadata and prints the command to run manually.
+Set `OSV_FETCH_MODE=scanner` to use a locally installed `osv-scanner` instead.
+
+## Rule Defaults
+
+The default data fetch pulls YARA Forge Extended, public Semgrep rules, and CodeQL
+packs for C/C++, Python, and Rust. Override `YARA_RULES_REPO_URL`,
+`YARA_FORGE_RULESET`, `SEMGREP_RULES_REPO_URL`, or `CODEQL_PACKS` to use an
+organization-approved mirror or a narrower language set.
+
+## Sanitized Bundles
+
+Use full bundles for maximum RE/vulnerability research coverage:
+
+```text
+intel-data-full-<TAG>.tar.zst
+```
+
+Use sanitized bundles for environments that cannot accept AV/DLP-sensitive
+advisory text:
+
+```text
+intel-data-sanitized-<TAG>.tar.zst
+```
+
+Sanitized bundles should exclude or redact PoC/exploit-heavy records and will
+have reduced coverage.

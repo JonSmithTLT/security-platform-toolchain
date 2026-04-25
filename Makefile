@@ -12,7 +12,7 @@ GHIDRA_DATE ?= 20260303
 GHIDRA_MCP_REPO ?= https://github.com/bethington/ghidra-mcp.git
 GHIDRA_MCP_REF ?= v5.5.0
 
-.PHONY: all build-all lint test test-offline verify-offline functional-smoke bundle load-bundle image-list pull-bundle push push-registry clean $(IMAGES)
+.PHONY: all build-all lint test test-offline verify-offline functional-smoke data-bundle-smoke bundle load-bundle image-list pull-bundle push push-registry clean $(IMAGES)
 
 all: build-all
 
@@ -136,6 +136,9 @@ test-offline verify-offline:
 
 functional-smoke:
 	@bash examples/functional-smoke/run-functional-smoke.sh "$(REGISTRY)" "$(TAG)"
+
+data-bundle-smoke:
+	@bash scripts/data-bundle-smoke.sh "$(DATA_DIR)"
 
 ## ── Bundle (offline / air-gap) ─────────────────────────────────────────────
 

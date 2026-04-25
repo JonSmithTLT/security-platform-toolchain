@@ -6,6 +6,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUT_ROOT="${1:-data-bundles/sources}"
 
+: "${SEMGREP_RULES_REPO_URL:=https://github.com/semgrep/semgrep-rules.git}"
+: "${CODEQL_PACKS:=codeql/cpp-queries codeql/python-queries codeql/rust-queries}"
+export SEMGREP_RULES_REPO_URL CODEQL_PACKS
+
 FETCHERS=(
     fetch-cisa-kev.sh
     fetch-cwe.sh

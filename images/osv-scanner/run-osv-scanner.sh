@@ -23,10 +23,11 @@ ARGS=(scan source --recursive --format json --output-file "${RAW_OUT}" "${TARGET
 if [[ "${OSV_OFFLINE}" == "1" || "${OSV_OFFLINE,,}" == "true" ]]; then
     if [[ ! -d "${OSV_SCANNER_LOCAL_DB_CACHE_DIRECTORY}" ]]; then
         log_error "OSV offline mode requires OSV_SCANNER_LOCAL_DB_CACHE_DIRECTORY=${OSV_SCANNER_LOCAL_DB_CACHE_DIRECTORY}"
-        log_error "Prepare it on a connected machine with: osv-scanner --download-offline-databases --offline-vulnerabilities --local-db-cache-directory <dir>"
+        log_error "Prepare it on a connected machine with: OSV_SCANNER_LOCAL_DB_CACHE_DIRECTORY=<dir> osv-scanner --download-offline-databases --offline-vulnerabilities <target>"
         STATUS=failure
     else
-        ARGS+=(--offline-vulnerabilities --local-db-cache-directory "${OSV_SCANNER_LOCAL_DB_CACHE_DIRECTORY}")
+        export OSV_SCANNER_LOCAL_DB_CACHE_DIRECTORY
+        ARGS+=(--offline-vulnerabilities)
     fi
 fi
 
