@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/JonSmithTLT/security-platform-toolchain/schemas/job-report.schema.json",
+  "title": "JobReport",
+  "description": "Top-level report emitted by every security-platform-toolchain tool at the end of a run.",
+  "type": "object",
+  "required": ["schema_version", "job_id", "tool", "status", "timestamp"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Semantic version of this schema.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "examples": ["1.0.0"]
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Unique identifier for this pipeline run (e.g. Jenkins BUILD_ID, UUID).",
+      "minLength": 1
+    },
+    "tool": {
+      "type": "string",
+      "description": "Name of the tool that produced this report.",
+      "minLength": 1,
+      "examples": ["semgrep", "codeql", "sbom", "secrets", "fuzzing"]
+    },
+    "status": {
+      "type": "string",
+      "description": "Overall outcome of the tool run.",
+      "enum": ["success", "failure", "error"]
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "UTC ISO-8601 timestamp at which the report was emitted.",
+      "format": "date-time",
+      "examples": ["2026-04-25T00:00:00Z"]
+    },
+    "duration_seconds": {
+      "type": "number",
+      "description": "Wall-clock duration of the tool run in seconds.",
+      "minimum": 0
+    },
+    "exit_code": {
+      "type": "integer",
+      "description": "Process exit code of the tool."
+    },
+    "results": {
+      "$ref": "tool-result.schema.json",
+      "description": "Inline tool results (optional; may be in a separate file instead)."
+    },
+    "artifact_manifest": {
+      "$ref": "artifact-manifest.schema.json",
+      "description": "Inline artifact manifest (optional)."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Arbitrary key-value metadata (image version, git ref, etc.).",
+      "additionalProperties": { "type": "string" }
+    }
+  }
+}

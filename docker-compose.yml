@@ -1,0 +1,184 @@
+# security-platform-toolchain — docker-compose.yml
+# Runs every tool image with a shared workspace volume.
+# Override REGISTRY, TAG, WORKSPACE, and TARGET_REPO at runtime.
+#
+#   docker-compose run --rm semgrep
+#   WORKSPACE=/path/to/repo docker-compose run --rm codeql
+
+version: "3.9"
+
+x-common: &common
+  restart: "no"
+  environment:
+    - LOG_LEVEL=${LOG_LEVEL:-info}
+    - JOB_ID=${JOB_ID:-local}
+    - ARTIFACTS_DIR=/artifacts
+  volumes:
+    - workspace:/workspace
+    - artifacts:/artifacts
+
+services:
+
+  base:
+    <<: *common
+    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-base:${TAG:-latest}
+    build:
+      context: images/base
+
+  c-cpp-analysis:
+    <<: *common
+    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-c-cpp-analysis:${TAG:-latest}
+    build:
+      context: images/c-cpp-analysis
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - JOB_ID=${JOB_ID:-local}
+      - ARTIFACTS_DIR=/artifacts
+      - TARGET_REPO=/workspace
+    volumes:
+      - ${WORKSPACE:-.}:/workspace:ro
+      - artifacts:/artifacts
+
+  fuzzing:
+    <<: *common
+    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-fuzzing:${TAG:-latest}
+    build:
+      context: images/fuzzing
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - JOB_ID=${JOB_ID:-local}
+      - ARTIFACTS_DIR=/artifacts
+      - FUZZ_TARGET=${FUZZ_TARGET:-}
+      - FUZZ_TIMEOUT=${FUZZ_TIMEOUT:-300}
+    volumes:
+      - ${WORKSPACE:-.}:/workspace:ro
+      - artifacts:/artifacts
+    security_opt:
+      - seccomp:unconfined   # required by AFL++
+
+  gitnexus:
+    <<: *common
+    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-gitnexus:${TAG:-latest}
+    build:
+      context: images/gitnexus
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - JOB_ID=${JOB_ID:-local}
+      - ARTIFACTS_DIR=/artifacts
+      - NEXUS_URL=${NEXUS_URL:-}
+      - NEXUS_USER=${NEXUS_USER:-}
+      - NEXUS_PASS=${NEXUS_PASS:-}
+      - GIT_REPO=${GIT_REPO:-}
+      - GIT_REF=${GIT_REF:-HEAD}
+    volumes:
+      - ${WORKSPACE:-.}:/workspace
+      - artifacts:/artifacts
+
+  semgrep:
+    <<: *common
+    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-semgrep:${TAG:-latest}
+    build:
+      context: images/semgrep
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - JOB_ID=${JOB_ID:-local}
+      - ARTIFACTS_DIR=/artifacts
+      - SEMGREP_RULES=/rules
+      - TARGET_REPO=/workspace
+    volumes:
+      - ${WORKSPACE:-.}:/workspace:ro
+      - ./rules/semgrep:/rules:ro
+      - artifacts:/artifacts
+
+  codeql:
+    <<: *common
+    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-codeql:${TAG:-latest}
+    build:
+      context: images/codeql
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - JOB_ID=${JOB_ID:-local}
+      - ARTIFACTS_DIR=/artifacts
+      - CODEQL_LANGUAGE=${CODEQL_LANGUAGE:-cpp}
+      - TARGET_REPO=/workspace
+    volumes:
+      - ${WORKSPACE:-.}:/workspace:ro
+      - ./queries/codeql:/queries:ro
+      - artifacts:/artifacts
+
+  sbom:
+    <<: *common
+    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-sbom:${TAG:-latest}
+    build:
+      context: images/sbom
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - JOB_ID=${JOB_ID:-local}
+      - ARTIFACTS_DIR=/artifacts
+      - SBOM_FORMAT=${SBOM_FORMAT:-cyclonedx-json}
+      - TARGET_REPO=/workspace
+    volumes:
+      - ${WORKSPACE:-.}:/workspace:ro
+      - artifacts:/artifacts
+
+  secrets:
+    <<: *common
+    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-secrets:${TAG:-latest}
+    build:
+      context: images/secrets
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - JOB_ID=${JOB_ID:-local}
+      - ARTIFACTS_DIR=/artifacts
+      - TARGET_REPO=/workspace
+    volumes:
+      - ${WORKSPACE:-.}:/workspace:ro
+      - artifacts:/artifacts
+
+  corpus-tools:
+    <<: *common
+    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-corpus-tools:${TAG:-latest}
+    build:
+      context: images/corpus-tools
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - JOB_ID=${JOB_ID:-local}
+      - ARTIFACTS_DIR=/artifacts
+      - CORPUS_DIR=${CORPUS_DIR:-/workspace/corpus}
+    volumes:
+      - ${WORKSPACE:-.}:/workspace
+      - artifacts:/artifacts
+
+  replay-runner:
+    <<: *common
+    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-replay-runner:${TAG:-latest}
+    build:
+      context: images/replay-runner
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - JOB_ID=${JOB_ID:-local}
+      - ARTIFACTS_DIR=/artifacts
+      - REPLAY_TARGET=${REPLAY_TARGET:-}
+      - CRASH_DIR=${CRASH_DIR:-/workspace/crashes}
+    volumes:
+      - ${WORKSPACE:-.}:/workspace:ro
+      - artifacts:/artifacts
+
+  symbolic:
+    <<: *common
+    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-symbolic:${TAG:-latest}
+    build:
+      context: images/symbolic
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - JOB_ID=${JOB_ID:-local}
+      - ARTIFACTS_DIR=/artifacts
+      - SYMBOLIC_ENGINE=${SYMBOLIC_ENGINE:-angr}
+      - TARGET_BINARY=${TARGET_BINARY:-}
+    volumes:
+      - ${WORKSPACE:-.}:/workspace:ro
+      - artifacts:/artifacts
+
+volumes:
+  workspace:
+  artifacts:

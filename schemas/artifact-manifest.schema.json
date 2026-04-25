@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/JonSmithTLT/security-platform-toolchain/schemas/artifact-manifest.schema.json",
+  "title": "ArtifactManifest",
+  "description": "Enumerates every file under $ARTIFACTS_DIR that should be uploaded or archived.",
+  "type": "object",
+  "required": ["schema_version", "job_id", "generated_at", "artifacts"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "examples": ["1.0.0"]
+    },
+    "job_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "artifacts": {
+      "type": "array",
+      "description": "List of artifact entries.",
+      "items": { "$ref": "#/definitions/ArtifactEntry" }
+    }
+  },
+  "definitions": {
+    "ArtifactEntry": {
+      "type": "object",
+      "required": ["path", "sha256", "size_bytes", "mime_type"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Path relative to $ARTIFACTS_DIR.",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "description": "Lower-case hex SHA-256 digest.",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mime_type": {
+          "type": "string",
+          "description": "IANA media type.",
+          "examples": ["application/json", "text/plain", "application/octet-stream"]
+        },
+        "role": {
+          "type": "string",
+          "description": "Semantic role of the file.",
+          "enum": [
+            "job-report",
+            "manifest",
+            "tool-result",
+            "raw-output",
+            "evidence",
+            "log",
+            "sbom",
+            "other"
+          ]
+        },
+        "tool": {
+          "type": "string",
+          "description": "Name of the tool that produced this file."
+        }
+      }
+    }
+  }
+}

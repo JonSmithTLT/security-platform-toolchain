@@ -1,0 +1,70 @@
+# examples/docker-compose/docker-compose.yml
+# Standalone docker-compose example: scans a local repository with semgrep,
+# codeql, and sbom, writing all outputs to ./artifacts.
+#
+# Usage:
+#   export TARGET=/path/to/your/project
+#   docker-compose -f examples/docker-compose/docker-compose.yml up --abort-on-container-exit
+
+version: "3.9"
+
+x-common: &common
+  restart: "no"
+  environment:
+    - LOG_LEVEL=${LOG_LEVEL:-info}
+    - JOB_ID=${JOB_ID:-local-scan}
+    - ARTIFACTS_DIR=/artifacts
+
+services:
+
+  secrets:
+    <<: *common
+    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-secrets:${TAG:-latest}
+    volumes:
+      - ${TARGET:-.}:/workspace:ro
+      - ./artifacts:/artifacts
+
+  semgrep:
+    <<: *common
+    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-semgrep:${TAG:-latest}
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - JOB_ID=${JOB_ID:-local-scan}
+      - ARTIFACTS_DIR=/artifacts
+      - SEMGREP_RULES=/rules
+    volumes:
+      - ${TARGET:-.}:/workspace:ro
+      - ../../rules/semgrep:/rules:ro
+      - ./artifacts:/artifacts
+    depends_on:
+      - secrets
+
+  codeql:
+    <<: *common
+    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-codeql:${TAG:-latest}
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - JOB_ID=${JOB_ID:-local-scan}
+      - ARTIFACTS_DIR=/artifacts
+      - CODEQL_LANGUAGE=${CODEQL_LANGUAGE:-cpp}
+      - CODEQL_QUERIES=/queries
+    volumes:
+      - ${TARGET:-.}:/workspace:ro
+      - ../../queries/codeql:/queries:ro
+      - ./artifacts:/artifacts
+    depends_on:
+      - secrets
+
+  sbom:
+    <<: *common
+    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-sbom:${TAG:-latest}
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - JOB_ID=${JOB_ID:-local-scan}
+      - ARTIFACTS_DIR=/artifacts
+      - SBOM_FORMAT=${SBOM_FORMAT:-cyclonedx-json}
+    volumes:
+      - ${TARGET:-.}:/workspace:ro
+      - ./artifacts:/artifacts
+    depends_on:
+      - secrets

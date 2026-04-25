@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/JonSmithTLT/security-platform-toolchain/schemas/tool-result.schema.json",
+  "title": "ToolResult",
+  "description": "Normalised findings produced by any security-platform-toolchain tool.",
+  "type": "object",
+  "required": ["schema_version", "tool", "findings"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "examples": ["1.0.0"]
+    },
+    "tool": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tool_version": {
+      "type": "string",
+      "description": "Version string reported by the tool itself."
+    },
+    "target": {
+      "type": "string",
+      "description": "Repository URL, file path, or binary that was analysed."
+    },
+    "summary": {
+      "type": "object",
+      "description": "Aggregate counts by severity.",
+      "additionalProperties": false,
+      "properties": {
+        "total":    { "type": "integer", "minimum": 0 },
+        "critical": { "type": "integer", "minimum": 0 },
+        "high":     { "type": "integer", "minimum": 0 },
+        "medium":   { "type": "integer", "minimum": 0 },
+        "low":      { "type": "integer", "minimum": 0 },
+        "info":     { "type": "integer", "minimum": 0 }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Finding" }
+    }
+  },
+  "definitions": {
+    "Finding": {
+      "type": "object",
+      "required": ["id", "title", "severity"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique finding identifier within this result set.",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "description": "Short human-readable description of the finding."
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low", "info"]
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["high", "medium", "low"]
+        },
+        "rule_id": {
+          "type": "string",
+          "description": "Tool-specific rule or query identifier."
+        },
+        "cwe": {
+          "type": "array",
+          "description": "CWE identifiers (e.g. 'CWE-89').",
+          "items": { "type": "string" }
+        },
+        "cve": {
+          "type": "string",
+          "description": "CVE identifier if applicable."
+        },
+        "location": {
+          "$ref": "#/definitions/Location"
+        },
+        "message": {
+          "type": "string",
+          "description": "Full finding message or description."
+        },
+        "remediation": {
+          "type": "string",
+          "description": "Suggested fix or mitigation."
+        },
+        "references": {
+          "type": "array",
+          "items": { "type": "string", "format": "uri" }
+        },
+        "raw": {
+          "description": "Verbatim finding object from the native tool output.",
+          "type": "object"
+        }
+      }
+    },
+    "Location": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "file": { "type": "string" },
+        "line_start": { "type": "integer", "minimum": 1 },
+        "line_end":   { "type": "integer", "minimum": 1 },
+        "col_start":  { "type": "integer", "minimum": 0 },
+        "col_end":    { "type": "integer", "minimum": 0 },
+        "snippet":    { "type": "string" }
+      }
+    }
+  }
+}
