@@ -1,6 +1,8 @@
 # c-cpp-analysis
 
-C/C++ static analysis using **cppcheck** and **clang-tidy**.
+C/C++ analysis toolset covering **clang-tidy**, **cppcheck**, **sanitizers**
+(ASan, UBSan, TSan), **scan-build**, **Valgrind/Helgrind**, compiler hardening
+flags, and **libFuzzer** integration.
 
 ## Environment Variables
 

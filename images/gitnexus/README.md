@@ -1,7 +1,8 @@
 # gitnexus
 
-Helper image for **cloning Git repositories** and **pushing/pulling artifacts**
-to/from a Sonatype Nexus Repository Manager.
+**GitNexus** CLI/MCP code intelligence graph tool.  Builds and queries a
+graph of code relationships (call graphs, symbol references, dependency edges)
+to support platform workflows and MCP tool calls.
 
 ## Modes (`GITNEXUS_MODE`)
 
