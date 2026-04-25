@@ -1,7 +1,7 @@
 # images/sbom/Dockerfile
 # Software Bill of Materials generator using Syft (CycloneDX / SPDX).
 
-FROM ghcr.io/jonsmithtlt/spt-base:latest
+FROM registry.internal/security-platform/spt-base:latest
 
 LABEL org.opencontainers.image.description="SPT SBOM generator image"
 

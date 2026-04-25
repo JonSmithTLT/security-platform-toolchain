@@ -1,7 +1,7 @@
 # images/replay-runner/Dockerfile
 # Replays fuzzing crash inputs and PoC files against a target binary.
 
-FROM ghcr.io/jonsmithtlt/spt-base:latest
+FROM registry.internal/security-platform/spt-base:latest
 
 LABEL org.opencontainers.image.description="SPT replay runner image"
 

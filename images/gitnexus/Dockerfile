@@ -1,7 +1,7 @@
 # images/gitnexus/Dockerfile
 # Git + Nexus Repository Manager helper — clone repos and push/pull artifacts.
 
-FROM ghcr.io/jonsmithtlt/spt-base:latest
+FROM registry.internal/security-platform/spt-base:latest
 
 LABEL org.opencontainers.image.description="SPT git + Nexus artifact helper"
 

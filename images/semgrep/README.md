@@ -32,5 +32,5 @@ docker run --rm \
   -v $(pwd)/rules/semgrep:/rules:ro \
   -v $(pwd):/workspace:ro \
   -v artifacts:/artifacts \
-  ghcr.io/jonsmithtlt/spt-semgrep:latest
+  registry.internal/security-platform/spt-semgrep:latest
 ```

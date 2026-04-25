@@ -1,7 +1,7 @@
 # images/symbolic/Dockerfile
 # Symbolic execution using angr (Python) and optional KLEE support.
 
-FROM ghcr.io/jonsmithtlt/spt-base:latest
+FROM registry.internal/security-platform/spt-base:latest
 
 LABEL org.opencontainers.image.description="SPT symbolic execution image"
 

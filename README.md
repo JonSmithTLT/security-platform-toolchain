@@ -113,7 +113,7 @@ All tool images emit JSON conforming to the schemas in [`schemas/`](schemas/):
 ## Contributing
 
 1. Add a new image directory under `images/<name>/`.
-2. Include a `Dockerfile` that inherits `FROM ghcr.io/jonsmithtlt/spt-base:latest`.
+2. Include a `Dockerfile` that inherits `FROM registry.internal/security-platform/spt-base:latest`.
 3. Add a `run-<name>.sh` wrapper that sources `/usr/local/lib/spt/logging.sh`
    and calls `emit-job-report` at the end.
 4. Update `Makefile`, `docker-compose.yml`, and add a `README.md` for the image.

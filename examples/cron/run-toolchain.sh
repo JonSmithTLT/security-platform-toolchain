@@ -12,7 +12,7 @@
 set -euo pipefail
 
 # ── Configuration (override via environment) ──────────────────────────────
-REGISTRY="${REGISTRY:-ghcr.io/jonsmithtlt}"
+REGISTRY="${REGISTRY:-registry.internal/security-platform}"
 TAG="${TAG:-latest}"
 TARGET_REPO="${TARGET_REPO:-/opt/repos/my-project}"
 ARTIFACTS_BASE="${ARTIFACTS_BASE:-/var/spt/artifacts}"

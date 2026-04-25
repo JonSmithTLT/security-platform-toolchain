@@ -19,14 +19,14 @@ services:
 
   secrets:
     <<: *common
-    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-secrets:${TAG:-latest}
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-secrets:${TAG:-latest}
     volumes:
       - ${TARGET:-.}:/workspace:ro
       - ./artifacts:/artifacts
 
   semgrep:
     <<: *common
-    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-semgrep:${TAG:-latest}
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-semgrep:${TAG:-latest}
     environment:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - JOB_ID=${JOB_ID:-local-scan}
@@ -41,7 +41,7 @@ services:
 
   codeql:
     <<: *common
-    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-codeql:${TAG:-latest}
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-codeql:${TAG:-latest}
     environment:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - JOB_ID=${JOB_ID:-local-scan}
@@ -57,7 +57,7 @@ services:
 
   sbom:
     <<: *common
-    image: ${REGISTRY:-ghcr.io/jonsmithtlt}/spt-sbom:${TAG:-latest}
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-sbom:${TAG:-latest}
     environment:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - JOB_ID=${JOB_ID:-local-scan}
