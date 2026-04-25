@@ -57,6 +57,18 @@ dkms.conf
 # security-platform-toolchain — generated artefacts
 offline-bundles/out/
 data-bundles/out/
+offline-bundles/**/*.tar
+offline-bundles/**/*.tar.*
+offline-bundles/**/*.tar.part-*
+offline-bundles/**/*.zip
+offline-bundles/**/*.zst
+offline-bundles/**/*.oci
+offline-bundles/**/*.docker
+data-bundles/**/*.tar
+data-bundles/**/*.tar.*
+data-bundles/**/*.tar.part-*
+data-bundles/**/*.zip
+data-bundles/**/*.zst
 spt-bundle-*.tar
 spt-data-bundle-*.tar
 *.rebuilt.tar

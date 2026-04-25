@@ -180,7 +180,9 @@ can contain PoC strings, exploit commands, webshell snippets, suspicious
 indicators, or scanner fixtures. See [`SECURITY_NOTES.md`](SECURITY_NOTES.md)
 before distributing the data bundle.
 
-Bundle variants:
+The generic archive produced by this repo is named
+`spt-data-bundle-<TAG>.tar`. The names below are optional release aliases if you
+choose to publish explicit full/sanitized variants:
 
 | Variant | Description |
 |---------|-------------|

@@ -139,7 +139,14 @@ organization-approved mirror or a narrower language set.
 
 ## Sanitized Bundles
 
-Use full bundles for maximum RE/vulnerability research coverage:
+The generic archive produced by `make data-bundle` is:
+
+```text
+spt-data-bundle-<TAG>.tar
+```
+
+Use the names below only if you publish explicit release variants. Full bundles
+are for maximum RE/vulnerability research coverage:
 
 ```text
 intel-data-full-<TAG>.tar.zst
