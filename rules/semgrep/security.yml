@@ -1,0 +1,187 @@
+# rules/semgrep/security.yml
+# Starter Semgrep rule set for security-platform-toolchain.
+# Run with: semgrep --config rules/semgrep/ <target>
+
+rules:
+
+  # ── Injection ─────────────────────────────────────────────────────────────
+
+  - id: spt-shell-injection-subprocess
+    patterns:
+      - pattern: subprocess.call($CMD, shell=True, ...)
+      - pattern-not: subprocess.call("...", shell=True, ...)
+    message: >
+      Passing a variable to subprocess with shell=True can lead to shell
+      injection. Use a list of arguments and shell=False instead.
+    languages: [python]
+    severity: ERROR
+    metadata:
+      cwe: ["CWE-78"]
+      confidence: HIGH
+      category: security
+
+  - id: spt-os-system-injection
+    pattern: os.system($CMD)
+    pattern-not: os.system("...")
+    message: >
+      os.system() with a variable argument is vulnerable to shell injection.
+      Use subprocess.run() with a list of arguments.
+    languages: [python]
+    severity: ERROR
+    metadata:
+      cwe: ["CWE-78"]
+      confidence: HIGH
+      category: security
+
+  # ── SQL Injection ─────────────────────────────────────────────────────────
+
+  - id: spt-sql-injection-format
+    patterns:
+      - pattern: $CURSOR.execute($QUERY % ...)
+      - pattern-not: $CURSOR.execute("..." % ...)
+    message: >
+      String-formatting a SQL query with % can lead to SQL injection.
+      Use parameterised queries instead.
+    languages: [python]
+    severity: ERROR
+    metadata:
+      cwe: ["CWE-89"]
+      confidence: HIGH
+      category: security
+
+  - id: spt-sql-injection-fstring
+    pattern: $CURSOR.execute(f"... {$VAR} ...")
+    message: >
+      f-string interpolation in SQL queries can lead to SQL injection.
+      Use parameterised queries with placeholders.
+    languages: [python]
+    severity: ERROR
+    metadata:
+      cwe: ["CWE-89"]
+      confidence: HIGH
+      category: security
+
+  # ── Secrets / hardcoded credentials ───────────────────────────────────────
+
+  - id: spt-hardcoded-password
+    patterns:
+      - pattern: password = "..."
+      - pattern-not: password = ""
+    message: >
+      Hardcoded password detected. Use environment variables or a secrets
+      manager instead.
+    languages: [python, javascript, java, go]
+    severity: WARNING
+    metadata:
+      cwe: ["CWE-798"]
+      confidence: MEDIUM
+      category: security
+
+  - id: spt-hardcoded-aws-key
+    pattern: |
+      $VAR = "AKIA..."
+    message: Possible hardcoded AWS access key ID.
+    languages: [python, javascript, java, go, bash]
+    severity: ERROR
+    metadata:
+      cwe: ["CWE-798"]
+      confidence: HIGH
+      category: security
+
+  # ── Insecure deserialization ───────────────────────────────────────────────
+
+  - id: spt-pickle-load-untrusted
+    patterns:
+      - pattern: pickle.loads($DATA)
+      - pattern-not: pickle.loads(b"...")
+    message: >
+      pickle.loads() on untrusted data can lead to arbitrary code execution.
+      Use a safe serialisation format (JSON, protobuf) instead.
+    languages: [python]
+    severity: ERROR
+    metadata:
+      cwe: ["CWE-502"]
+      confidence: MEDIUM
+      category: security
+
+  # ── Path traversal ────────────────────────────────────────────────────────
+
+  - id: spt-open-path-traversal
+    patterns:
+      - pattern: open($PATH, ...)
+      - pattern-not: open("...", ...)
+    message: >
+      Opening a file with a user-controlled path may allow path traversal.
+      Validate and canonicalise the path before use.
+    languages: [python]
+    severity: WARNING
+    metadata:
+      cwe: ["CWE-22"]
+      confidence: LOW
+      category: security
+
+  # ── Weak cryptography ─────────────────────────────────────────────────────
+
+  - id: spt-md5-used
+    patterns:
+      - pattern: hashlib.md5(...)
+    message: >
+      MD5 is cryptographically weak. Use SHA-256 or stronger for security
+      purposes.
+    languages: [python]
+    severity: WARNING
+    metadata:
+      cwe: ["CWE-327"]
+      confidence: HIGH
+      category: security
+
+  - id: spt-sha1-used
+    patterns:
+      - pattern: hashlib.sha1(...)
+    message: >
+      SHA-1 is considered weak for security purposes. Prefer SHA-256 or
+      SHA-3.
+    languages: [python]
+    severity: WARNING
+    metadata:
+      cwe: ["CWE-327"]
+      confidence: HIGH
+      category: security
+
+  # ── C/C++ memory safety ───────────────────────────────────────────────────
+
+  - id: spt-gets-unsafe
+    pattern: gets($BUF)
+    message: >
+      gets() has no bounds checking and is inherently unsafe (removed in C11).
+      Use fgets() or getline() instead.
+    languages: [c, cpp]
+    severity: ERROR
+    metadata:
+      cwe: ["CWE-120"]
+      confidence: HIGH
+      category: security
+
+  - id: spt-strcpy-unsafe
+    pattern: strcpy($DST, $SRC)
+    message: >
+      strcpy() does not check buffer bounds. Use strncpy(), strlcpy(), or
+      snprintf() instead.
+    languages: [c, cpp]
+    severity: WARNING
+    metadata:
+      cwe: ["CWE-120"]
+      confidence: MEDIUM
+      category: security
+
+  - id: spt-sprintf-unsafe
+    pattern: sprintf($BUF, $FMT, ...)
+    message: >
+      sprintf() can overflow the destination buffer. Use snprintf() with
+      explicit size limits.
+    languages: [c, cpp]
+    severity: WARNING
+    metadata:
+      cwe: ["CWE-120"]
+      confidence: MEDIUM
+      category: security

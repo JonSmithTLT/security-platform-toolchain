@@ -1,0 +1,171 @@
+// examples/jenkins/Jenkinsfile
+// Declarative Jenkins pipeline for security-platform-toolchain.
+// Runs the full toolchain (secrets → semgrep → codeql → sbom → fuzzing) and
+// archives all artifacts.
+
+pipeline {
+    agent { label 'docker' }
+
+    parameters {
+        string(name: 'TARGET_REPO',     defaultValue: '',        description: 'Git URL of the repository to analyse')
+        string(name: 'GIT_REF',         defaultValue: 'main',    description: 'Branch, tag, or SHA to check out')
+        string(name: 'REGISTRY',        defaultValue: 'ghcr.io/jonsmithtlt', description: 'Image registry prefix')
+        string(name: 'TAG',             defaultValue: 'latest',  description: 'Image tag')
+        string(name: 'CODEQL_LANGUAGE', defaultValue: 'cpp',     description: 'CodeQL language pack')
+        booleanParam(name: 'RUN_FUZZING', defaultValue: false,   description: 'Enable fuzzing stage (slow)')
+    }
+
+    environment {
+        JOB_ID       = "${env.BUILD_TAG}"
+        ARTIFACTS    = "${env.WORKSPACE}/artifacts"
+        SPT_REGISTRY = "${params.REGISTRY}"
+        SPT_TAG      = "${params.TAG}"
+    }
+
+    options {
+        timestamps()
+        timeout(time: 4, unit: 'HOURS')
+        disableConcurrentBuilds()
+    }
+
+    stages {
+
+        stage('Prepare workspace') {
+            steps {
+                sh 'mkdir -p "${ARTIFACTS}"'
+                // Clone target repository into workspace/src
+                sh '''
+                    docker run --rm \
+                        -e JOB_ID="${JOB_ID}" \
+                        -e GIT_REPO="${TARGET_REPO}" \
+                        -e GIT_REF="${GIT_REF}" \
+                        -e GITNEXUS_MODE=clone \
+                        -v "${ARTIFACTS}:/artifacts" \
+                        -v "${WORKSPACE}/src:/workspace" \
+                        "${SPT_REGISTRY}/spt-gitnexus:${SPT_TAG}"
+                '''
+            }
+        }
+
+        stage('Secret scanning') {
+            steps {
+                sh '''
+                    docker run --rm \
+                        -e JOB_ID="${JOB_ID}" \
+                        -v "${WORKSPACE}/src:/workspace:ro" \
+                        -v "${ARTIFACTS}:/artifacts" \
+                        "${SPT_REGISTRY}/spt-secrets:${SPT_TAG}"
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'artifacts/results/secrets/**', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Semgrep SAST') {
+            steps {
+                sh '''
+                    docker run --rm \
+                        -e JOB_ID="${JOB_ID}" \
+                        -v "${WORKSPACE}/src:/workspace:ro" \
+                        -v "${WORKSPACE}/rules/semgrep:/rules:ro" \
+                        -v "${ARTIFACTS}:/artifacts" \
+                        "${SPT_REGISTRY}/spt-semgrep:${SPT_TAG}"
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'artifacts/results/semgrep/**', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('CodeQL analysis') {
+            steps {
+                sh '''
+                    docker run --rm \
+                        -e JOB_ID="${JOB_ID}" \
+                        -e CODEQL_LANGUAGE="${CODEQL_LANGUAGE}" \
+                        -v "${WORKSPACE}/src:/workspace:ro" \
+                        -v "${WORKSPACE}/queries/codeql:/queries:ro" \
+                        -v "${ARTIFACTS}:/artifacts" \
+                        "${SPT_REGISTRY}/spt-codeql:${SPT_TAG}"
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'artifacts/results/codeql/**', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('SBOM generation') {
+            steps {
+                sh '''
+                    docker run --rm \
+                        -e JOB_ID="${JOB_ID}" \
+                        -e SBOM_FORMAT=cyclonedx-json \
+                        -v "${WORKSPACE}/src:/workspace:ro" \
+                        -v "${ARTIFACTS}:/artifacts" \
+                        "${SPT_REGISTRY}/spt-sbom:${SPT_TAG}"
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'artifacts/sbom/**', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('C/C++ static analysis') {
+            when { expression { fileExists("${WORKSPACE}/src/compile_commands.json") } }
+            steps {
+                sh '''
+                    docker run --rm \
+                        -e JOB_ID="${JOB_ID}" \
+                        -v "${WORKSPACE}/src:/workspace:ro" \
+                        -v "${ARTIFACTS}:/artifacts" \
+                        "${SPT_REGISTRY}/spt-c-cpp-analysis:${SPT_TAG}"
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'artifacts/results/c-cpp-analysis/**', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Fuzzing') {
+            when { expression { params.RUN_FUZZING } }
+            steps {
+                sh '''
+                    docker run --rm \
+                        --security-opt seccomp:unconfined \
+                        -e JOB_ID="${JOB_ID}" \
+                        -e FUZZ_TARGET="${FUZZ_TARGET}" \
+                        -e FUZZ_TIMEOUT=300 \
+                        -v "${WORKSPACE}/src:/workspace:ro" \
+                        -v "${ARTIFACTS}:/artifacts" \
+                        "${SPT_REGISTRY}/spt-fuzzing:${SPT_TAG}"
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'artifacts/results/fuzzing/**', allowEmptyArchive: true
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'artifacts/job-report.json', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'artifacts/logs/**',         allowEmptyArchive: true
+        }
+        failure {
+            echo "Pipeline FAILED — check archived artifacts for details."
+        }
+    }
+}

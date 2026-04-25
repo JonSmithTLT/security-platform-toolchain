@@ -1,0 +1,152 @@
+{
+  "mcp_version": "1.0",
+  "description": "MCP tool-call manifest for security-platform-toolchain. Each entry describes one tool invocation that an MCP orchestrator can dispatch.",
+  "tools": [
+    {
+      "id": "spt-secrets",
+      "description": "Scan source code for hardcoded secrets and credentials using Gitleaks and TruffleHog.",
+      "image": "${REGISTRY}/spt-secrets:${TAG}",
+      "environment": {
+        "JOB_ID":        "${JOB_ID}",
+        "TARGET_REPO":   "/workspace",
+        "ARTIFACTS_DIR": "/artifacts",
+        "LOG_LEVEL":     "${LOG_LEVEL:-info}"
+      },
+      "volumes": {
+        "${WORKSPACE}": { "bind": "/workspace", "mode": "ro" },
+        "${ARTIFACTS}": { "bind": "/artifacts",  "mode": "rw" }
+      },
+      "output": {
+        "job_report":  "artifacts/job-report.json",
+        "raw_results": "artifacts/results/secrets/raw/"
+      }
+    },
+    {
+      "id": "spt-semgrep",
+      "description": "Run Semgrep SAST with custom security rules.",
+      "image": "${REGISTRY}/spt-semgrep:${TAG}",
+      "environment": {
+        "JOB_ID":        "${JOB_ID}",
+        "TARGET_REPO":   "/workspace",
+        "SEMGREP_RULES": "/rules",
+        "ARTIFACTS_DIR": "/artifacts",
+        "LOG_LEVEL":     "${LOG_LEVEL:-info}"
+      },
+      "volumes": {
+        "${WORKSPACE}":        { "bind": "/workspace", "mode": "ro" },
+        "${RULES_DIR}":        { "bind": "/rules",     "mode": "ro" },
+        "${ARTIFACTS}":        { "bind": "/artifacts", "mode": "rw" }
+      },
+      "output": {
+        "job_report":    "artifacts/job-report.json",
+        "tool_result":   "artifacts/results/semgrep/tool-result.json",
+        "raw_results":   "artifacts/results/semgrep/raw/"
+      }
+    },
+    {
+      "id": "spt-codeql",
+      "description": "Build a CodeQL database and run security queries.",
+      "image": "${REGISTRY}/spt-codeql:${TAG}",
+      "environment": {
+        "JOB_ID":           "${JOB_ID}",
+        "TARGET_REPO":      "/workspace",
+        "CODEQL_LANGUAGE":  "${CODEQL_LANGUAGE:-cpp}",
+        "CODEQL_QUERIES":   "/queries",
+        "ARTIFACTS_DIR":    "/artifacts",
+        "LOG_LEVEL":        "${LOG_LEVEL:-info}"
+      },
+      "volumes": {
+        "${WORKSPACE}":    { "bind": "/workspace", "mode": "ro" },
+        "${QUERIES_DIR}":  { "bind": "/queries",   "mode": "ro" },
+        "${ARTIFACTS}":    { "bind": "/artifacts", "mode": "rw" }
+      },
+      "output": {
+        "job_report":  "artifacts/job-report.json",
+        "sarif":       "artifacts/results/codeql/raw/codeql.sarif"
+      }
+    },
+    {
+      "id": "spt-sbom",
+      "description": "Generate a Software Bill of Materials (CycloneDX or SPDX).",
+      "image": "${REGISTRY}/spt-sbom:${TAG}",
+      "environment": {
+        "JOB_ID":        "${JOB_ID}",
+        "TARGET_REPO":   "/workspace",
+        "SBOM_FORMAT":   "${SBOM_FORMAT:-cyclonedx-json}",
+        "ARTIFACTS_DIR": "/artifacts",
+        "LOG_LEVEL":     "${LOG_LEVEL:-info}"
+      },
+      "volumes": {
+        "${WORKSPACE}": { "bind": "/workspace", "mode": "ro" },
+        "${ARTIFACTS}": { "bind": "/artifacts", "mode": "rw" }
+      },
+      "output": {
+        "job_report": "artifacts/job-report.json",
+        "sbom":       "artifacts/sbom/"
+      }
+    },
+    {
+      "id": "spt-c-cpp-analysis",
+      "description": "Run cppcheck and clang-tidy static analysis on a C/C++ project.",
+      "image": "${REGISTRY}/spt-c-cpp-analysis:${TAG}",
+      "environment": {
+        "JOB_ID":             "${JOB_ID}",
+        "TARGET_REPO":        "/workspace",
+        "CPPCHECK_SEVERITY":  "${CPPCHECK_SEVERITY:-warning}",
+        "ARTIFACTS_DIR":      "/artifacts",
+        "LOG_LEVEL":          "${LOG_LEVEL:-info}"
+      },
+      "volumes": {
+        "${WORKSPACE}": { "bind": "/workspace", "mode": "ro" },
+        "${ARTIFACTS}": { "bind": "/artifacts", "mode": "rw" }
+      },
+      "output": {
+        "job_report":  "artifacts/job-report.json",
+        "raw_results": "artifacts/results/c-cpp-analysis/raw/"
+      }
+    },
+    {
+      "id": "spt-fuzzing",
+      "description": "Run AFL++ coverage-guided fuzzing against an instrumented binary.",
+      "image": "${REGISTRY}/spt-fuzzing:${TAG}",
+      "security_opt": ["seccomp:unconfined"],
+      "environment": {
+        "JOB_ID":        "${JOB_ID}",
+        "FUZZ_TARGET":   "${FUZZ_TARGET}",
+        "FUZZ_TIMEOUT":  "${FUZZ_TIMEOUT:-300}",
+        "FUZZ_CORPUS":   "/workspace/corpus",
+        "ARTIFACTS_DIR": "/artifacts",
+        "LOG_LEVEL":     "${LOG_LEVEL:-info}"
+      },
+      "volumes": {
+        "${WORKSPACE}": { "bind": "/workspace", "mode": "ro" },
+        "${ARTIFACTS}": { "bind": "/artifacts", "mode": "rw" }
+      },
+      "output": {
+        "job_report": "artifacts/job-report.json",
+        "crashes":    "artifacts/results/fuzzing/evidence/crashes/"
+      }
+    },
+    {
+      "id": "spt-symbolic",
+      "description": "Symbolic execution (angr / KLEE) to find deep vulnerability paths.",
+      "image": "${REGISTRY}/spt-symbolic:${TAG}",
+      "environment": {
+        "JOB_ID":            "${JOB_ID}",
+        "TARGET_BINARY":     "${TARGET_BINARY}",
+        "SYMBOLIC_ENGINE":   "${SYMBOLIC_ENGINE:-angr}",
+        "SYMBOLIC_TIMEOUT":  "${SYMBOLIC_TIMEOUT:-600}",
+        "ARTIFACTS_DIR":     "/artifacts",
+        "LOG_LEVEL":         "${LOG_LEVEL:-info}"
+      },
+      "volumes": {
+        "${WORKSPACE}": { "bind": "/workspace", "mode": "ro" },
+        "${ARTIFACTS}": { "bind": "/artifacts", "mode": "rw" }
+      },
+      "output": {
+        "job_report": "artifacts/job-report.json",
+        "raw":        "artifacts/results/symbolic/raw/"
+      }
+    }
+  ]
+}
