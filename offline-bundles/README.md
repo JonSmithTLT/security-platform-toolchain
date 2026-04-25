@@ -32,6 +32,32 @@ disabled, calls `docker save` for every image, and writes:
 
 ---
 
+## Registry namespace workflow
+
+For very large bundles, keep the tarball out of Git and publish images to one
+registry namespace:
+
+```bash
+make push-registry \
+  REGISTRY=registry.internal/security-platform \
+  TARGET_REGISTRY=docker.io/<namespace> \
+  TAG=1.2.3
+```
+
+Then recreate the single transfer tarball from that namespace on a connected
+machine:
+
+```bash
+make pull-bundle \
+  SOURCE_REGISTRY=docker.io/<namespace> \
+  TAG=1.2.3
+```
+
+This writes the same bundle tar, checksum, manifest, and image list under
+`offline-bundles/out/`.
+
+---
+
 ## Restoring a bundle (air-gapped host)
 
 ```bash
@@ -52,7 +78,7 @@ make verify-offline TAG=1.2.3
 ```bash
 INTERNAL_REGISTRY=registry.internal.example.com:5000
 
-for img in base c-cpp-analysis fuzzing gitnexus semgrep codeql sbom secrets corpus-tools replay-runner symbolic; do
+for img in base schema-validator result-normalizers c-cpp-analysis coverage-tools fuzzing replay-runner sbom osv-scanner secrets image-scanner re-lightweight yara intel-ingest rag-indexer diff-impact ghidra-base ghidra-exporter ghidra-mcp eval-runner gitnexus semgrep codeql corpus-tools symbolic; do
     docker tag registry.internal/security-platform/spt-${img}:1.2.3 \
                ${INTERNAL_REGISTRY}/spt-${img}:1.2.3
     docker push ${INTERNAL_REGISTRY}/spt-${img}:1.2.3

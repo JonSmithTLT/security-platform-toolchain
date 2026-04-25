@@ -3,7 +3,10 @@
 .dockerignore
 
 artifacts/
+artifacts-smoke/
+.tmp-smoke/
 offline-bundles/out/
+data-bundles/out/
 __pycache__/
 .pytest_cache/
 

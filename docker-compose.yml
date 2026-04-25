@@ -26,6 +26,39 @@ services:
       context: .
       dockerfile: images/base/Dockerfile
 
+  schema-validator:
+    <<: *common
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-schema-validator:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: images/schema-validator/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - JOB_ID=${JOB_ID:-local}
+      - ARTIFACTS_DIR=/artifacts
+      - VALIDATE_TARGET=/artifacts
+    volumes:
+      - artifacts:/artifacts
+
+  result-normalizers:
+    <<: *common
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-result-normalizers:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: images/result-normalizers/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - JOB_ID=${JOB_ID:-local}
+      - ARTIFACTS_DIR=/artifacts
+      - NORMALIZER_INPUT=/artifacts/results
+      - NORMALIZER_FORMAT=auto
+    volumes:
+      - artifacts:/artifacts
+
   c-cpp-analysis:
     <<: *common
     image: ${REGISTRY:-registry.internal/security-platform}/spt-c-cpp-analysis:${TAG:-latest}
@@ -42,6 +75,114 @@ services:
     volumes:
       - ${WORKSPACE:-.}:/workspace:ro
       - artifacts:/artifacts
+
+  coverage-tools:
+    <<: *common
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-coverage-tools:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: images/coverage-tools/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
+
+  osv-scanner:
+    <<: *common
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-osv-scanner:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: images/osv-scanner/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
+
+  image-scanner:
+    <<: *common
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-image-scanner:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: images/image-scanner/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
+
+  re-lightweight:
+    <<: *common
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-re-lightweight:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: images/re-lightweight/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
+
+  yara:
+    <<: *common
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-yara:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: images/yara/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
+
+  intel-ingest:
+    <<: *common
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-intel-ingest:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: images/intel-ingest/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
+
+  rag-indexer:
+    <<: *common
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-rag-indexer:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: images/rag-indexer/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
+
+  diff-impact:
+    <<: *common
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-diff-impact:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: images/diff-impact/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
+
+  ghidra-base:
+    <<: *common
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-ghidra-base:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: images/ghidra-base/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
+
+  ghidra-exporter:
+    <<: *common
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-ghidra-exporter:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: images/ghidra-exporter/Dockerfile
+      args:
+        GHIDRA_BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-ghidra-base:${TAG:-latest}
+
+  ghidra-mcp:
+    <<: *common
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-ghidra-mcp:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: images/ghidra-mcp/Dockerfile
+      args:
+        GHIDRA_BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-ghidra-base:${TAG:-latest}
+
+  eval-runner:
+    <<: *common
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-eval-runner:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: images/eval-runner/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
 
   fuzzing:
     <<: *common

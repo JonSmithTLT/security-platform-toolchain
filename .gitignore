@@ -56,7 +56,10 @@ dkms.conf
 
 # security-platform-toolchain — generated artefacts
 offline-bundles/out/
+data-bundles/out/
 artifacts/
+artifacts-smoke/
+.tmp-smoke/
 __pycache__/
 *.pyc
 .pytest_cache/

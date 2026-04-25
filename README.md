@@ -28,15 +28,29 @@ security-platform-toolchain/
 │
 ├── images/                     # one sub-directory per tool image
 │   ├── base/                   # Ubuntu 24.04 base layer + shared scripts
+│   ├── schema-validator/       # validates emitted SPT JSON artifacts
+│   ├── result-normalizers/     # converts raw tool output to tool-result JSON
 │   ├── c-cpp-analysis/         # clang-tidy, cppcheck, sanitizers (ASan/UBSan/TSan), scan-build, Valgrind/Helgrind, compiler hardening, libFuzzer
+│   ├── coverage-tools/         # gcovr/lcov coverage reports
 │   ├── fuzzing/                # AFL++
+│   ├── replay-runner/          # crash replay + Valgrind
+│   ├── sbom/                   # Syft (CycloneDX / SPDX)
+│   ├── osv-scanner/            # OSV dependency scanning
+│   ├── secrets/                # Gitleaks + TruffleHog
+│   ├── image-scanner/          # Grype image/filesystem scanning
+│   ├── re-lightweight/         # lightweight RE triage
+│   ├── yara/                   # YARA scanning
+│   ├── intel-ingest/           # offline intel ingestion
+│   ├── rag-indexer/            # derived RAG indexes
+│   ├── diff-impact/            # diff impact analysis
+│   ├── ghidra-base/            # shared Ghidra runtime
+│   ├── ghidra-exporter/        # controlled Ghidra exports
+│   ├── ghidra-mcp/             # analyst/MCP Ghidra workflows
+│   ├── eval-runner/            # workflow/RAG evaluations
 │   ├── gitnexus/               # GitNexus CLI/MCP code intelligence graph
 │   ├── semgrep/                # Semgrep SAST
 │   ├── codeql/                 # CodeQL CLI
-│   ├── sbom/                   # Syft (CycloneDX / SPDX)
-│   ├── secrets/                # Gitleaks + TruffleHog
 │   ├── corpus-tools/           # AFL++ corpus minimise/merge/dedup
-│   ├── replay-runner/          # crash replay + Valgrind
 │   └── symbolic/               # angr / KLEE symbolic execution
 │
 ├── rules/
@@ -90,6 +104,27 @@ make bundle TAG=1.2.3
 # → offline-bundles/out/spt-bundle-1.2.3.tar
 ```
 
+### Publish images to one registry namespace
+
+If the Git repo is too large to carry image tarballs, push the separate images
+to one registry namespace:
+
+```bash
+make push-registry \
+  REGISTRY=registry.internal/security-platform \
+  TARGET_REGISTRY=docker.io/<namespace> \
+  TAG=1.2.3
+```
+
+Another connected machine can pull that namespace and recreate one offline
+bundle:
+
+```bash
+make pull-bundle \
+  SOURCE_REGISTRY=docker.io/<namespace> \
+  TAG=1.2.3
+```
+
 ### Load and verify an offline bundle
 
 ```bash
@@ -99,6 +134,34 @@ make verify-offline TAG=1.2.3
 
 `verify-offline` starts each image with Docker networking disabled
 (`--network none`) to catch accidental runtime internet dependencies.
+
+### Run functional smoke tests
+
+```bash
+make functional-smoke REGISTRY=registry.internal/security-platform TAG=1.2.3
+```
+
+This creates a tiny local fixture under `artifacts/functional-smoke`, then runs
+selected images with Docker networking disabled to prove real behavior:
+Semgrep detection, result normalization, schema validation, SBOM generation,
+Gitleaks execution, Grype execution, C/C++ analysis execution, coverage output,
+YARA scanning, lightweight RE triage, intel ingestion, RAG indexing,
+diff-impact output, and eval execution.
+
+### Create an offline data bundle
+
+Stage vulnerability intelligence and rule data under `data-bundles/sources/`,
+then bundle it separately from the Docker images:
+
+```bash
+make data-fetch TAG=2026-04-25
+make data-bundle TAG=2026-04-25
+make data-verify TAG=2026-04-25
+```
+
+Use this for OSV databases, CWE, CAPEC, MITRE ATT&CK, CVE/NVD, CISA KEV,
+EPSS, advisory databases, YARA rules, Semgrep rules, CodeQL packs, and vendor
+advisories.
 
 ---
 
@@ -118,6 +181,24 @@ All tool images emit JSON conforming to the schemas in [`schemas/`](schemas/):
 | `job-report.schema.json` | Top-level run report |
 | `artifact-manifest.schema.json` | File manifest with checksums |
 | `tool-result.schema.json` | Normalised findings |
+
+---
+
+## Planned image phases
+
+The current platform spine is `base`, `schema-validator`, `result-normalizers`,
+`semgrep`, and `gitnexus`. The newer images have first-pass implementations so
+they can travel in the offline bundle and run useful offline workflows. They
+should be deepened in this order:
+
+1. `c-cpp-analysis`, `coverage-tools`, `fuzzing`, `replay-runner`
+2. `sbom`, `osv-scanner`, `secrets`, `image-scanner`
+3. `re-lightweight`, `yara`, `intel-ingest`, `rag-indexer`, `diff-impact`
+4. `ghidra-base`, `ghidra-exporter`, `ghidra-mcp`, `eval-runner`, `codeql`, `symbolic`
+
+`ghidra-exporter` should be the controlled batch producer for platform
+ingestion. `ghidra-mcp` should be a separate reusable local RE environment for
+analysts and agentic workflows.
 
 ---
 

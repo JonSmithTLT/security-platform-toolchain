@@ -38,13 +38,22 @@ semgrep \
 FINDING_COUNT=0
 if [[ -f "${RAW_DIR}/semgrep.json" ]]; then
     FINDING_COUNT=$(jq '.results | length' "${RAW_DIR}/semgrep.json" 2>/dev/null || echo 0)
-    jq --arg tool semgrep '{
+    jq --arg tool semgrep '
+    def spt_severity:
+        ascii_downcase as $s |
+        if $s == "error" then "high"
+        elif $s == "warning" or $s == "warn" then "medium"
+        elif $s == "note" then "info"
+        elif $s == "critical" or $s == "high" or $s == "medium" or $s == "low" or $s == "info" then $s
+        else "info"
+        end;
+    {
         schema_version: "1.0.0",
         tool: $tool,
         findings: [.results[] | {
             id: .check_id,
             title: .extra.message,
-            severity: (.extra.severity // "info" | ascii_downcase),
+            severity: (.extra.severity // "info" | spt_severity),
             rule_id: .check_id,
             location: {
                 file: .path,

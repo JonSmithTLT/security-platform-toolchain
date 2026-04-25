@@ -13,7 +13,7 @@ source /usr/local/lib/spt/logging.sh
 
 RESULTS_DIR="${ARTIFACTS_DIR}/results/c-cpp-analysis"
 RAW_DIR="${RESULTS_DIR}/raw"
-mkdir -p "${RAW_DIR}"
+mkdir -p "${RAW_DIR}" "${ARTIFACTS_DIR}/logs"
 
 START_TIME=$(date +%s)
 STATUS=success
@@ -21,10 +21,9 @@ STATUS=success
 log_info "Starting C/C++ analysis on ${TARGET_REPO}"
 
 # ── cppcheck ───────────────────────────────────────────────────────────────
-log_info "Running cppcheck (severity=${CPPCHECK_SEVERITY})"
+log_info "Running cppcheck"
 cppcheck \
     --enable=all \
-    --severity="${CPPCHECK_SEVERITY}" \
     --output-file="${RAW_DIR}/cppcheck.xml" \
     --xml --xml-version=2 \
     --suppress=missingIncludeSystem \

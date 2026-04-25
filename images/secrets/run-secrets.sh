@@ -20,13 +20,32 @@ TOTAL_FINDINGS=0
 
 _run_gitleaks() {
     log_info "Running Gitleaks"
-    gitleaks detect \
-        --source="${TARGET_REPO}" \
-        --report-format=json \
-        --report-path="${RAW_DIR}/gitleaks.json" \
-        --exit-code=0 \
-        2>&1 | tee -a "${ARTIFACTS_DIR}/logs/secrets.log" \
-        || true
+    if [[ -d "${TARGET_REPO}/.git" ]]; then
+        gitleaks detect \
+            --source="${TARGET_REPO}" \
+            --report-format=json \
+            --report-path="${RAW_DIR}/gitleaks.json" \
+            --exit-code=0 \
+            2>&1 | tee -a "${ARTIFACTS_DIR}/logs/secrets.log" \
+            || true
+    elif gitleaks dir --help >/dev/null 2>&1; then
+        gitleaks dir "${TARGET_REPO}" \
+            --report-format=json \
+            --report-path="${RAW_DIR}/gitleaks.json" \
+            --exit-code=0 \
+            2>&1 | tee -a "${ARTIFACTS_DIR}/logs/secrets.log" \
+            || true
+    else
+        gitleaks detect \
+            --no-git \
+            --source="${TARGET_REPO}" \
+            --report-format=json \
+            --report-path="${RAW_DIR}/gitleaks.json" \
+            --exit-code=0 \
+            2>&1 | tee -a "${ARTIFACTS_DIR}/logs/secrets.log" \
+            || true
+    fi
+    [[ -f "${RAW_DIR}/gitleaks.json" ]] || echo "[]" > "${RAW_DIR}/gitleaks.json"
     COUNT=$(jq '. | if type=="array" then length else 0 end' \
         "${RAW_DIR}/gitleaks.json" 2>/dev/null || echo 0)
     log_info "  Gitleaks findings: ${COUNT}"

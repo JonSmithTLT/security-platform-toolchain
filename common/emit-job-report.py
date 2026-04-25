@@ -33,8 +33,11 @@ import datetime
 import json
 import os
 import sys
+import warnings
 from pathlib import Path
 from typing import Any
+
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 # ── Optional jsonschema validation ─────────────────────────────────────────
@@ -50,6 +53,21 @@ def _load_json(path: Path) -> Any:
         return json.load(fh)
 
 
+def _utc_now() -> str:
+    return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def _schema_store(schema_dir: Path) -> dict[str, Any]:
+    store: dict[str, Any] = {}
+    for schema_file in schema_dir.glob("*.schema.json"):
+        schema = _load_json(schema_file)
+        store[schema_file.name] = schema
+        store[(schema_dir.resolve().as_uri() + "/" + schema_file.name)] = schema
+        if "$id" in schema:
+            store[schema["$id"]] = schema
+    return store
+
+
 def _validate(instance: dict, schema_path: Path) -> None:
     if not _HAS_JSONSCHEMA:
         print(
@@ -58,7 +76,17 @@ def _validate(instance: dict, schema_path: Path) -> None:
         )
         return
     schema = _load_json(schema_path)
-    jsonschema.validate(instance=instance, schema=schema)
+    schema_dir = schema_path.parent
+    resolver = jsonschema.RefResolver(
+        base_uri=schema_dir.resolve().as_uri() + "/",
+        referrer=schema,
+        store=_schema_store(schema_dir),
+    )
+    validator = jsonschema.Draft7Validator(schema, resolver=resolver)
+    errors = validator.iter_errors(instance)
+    error = jsonschema.exceptions.best_match(errors)
+    if error is not None:
+        raise error
 
 
 def _coerce_extra_value(value: str) -> Any:
@@ -96,14 +124,14 @@ def build_report(
     status: str,
     results: Any | None,
     manifest: Any | None,
-    extra: dict[str, str],
+    extra: dict[str, Any],
 ) -> dict:
     report: dict[str, Any] = {
         "schema_version": "1.0.0",
         "job_id": job_id,
         "tool": tool,
         "status": status,
-        "timestamp": datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "timestamp": _utc_now(),
     }
     if results is not None:
         report["results"] = results
