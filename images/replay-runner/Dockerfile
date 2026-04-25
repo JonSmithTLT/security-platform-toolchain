@@ -1,7 +1,8 @@
 # images/replay-runner/Dockerfile
 # Replays fuzzing crash inputs and PoC files against a target binary.
 
-FROM registry.internal/security-platform/spt-base:latest
+ARG BASE_IMAGE=registry.internal/security-platform/spt-base:latest
+FROM ${BASE_IMAGE}
 
 LABEL org.opencontainers.image.description="SPT replay runner image"
 
@@ -14,7 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY images/replay-runner/run-replay.sh /usr/local/bin/run-replay
-RUN chmod +x /usr/local/bin/run-replay
+RUN sed -i 's/\r$//' /usr/local/bin/run-replay \
+    && chmod +x /usr/local/bin/run-replay
 
 USER spt
 

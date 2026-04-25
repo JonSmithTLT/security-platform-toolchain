@@ -1,9 +1,10 @@
 # security-platform-toolchain
 
-Repeatable, offline-friendly Docker toolchain for the security research platform.
-Provides pinned images, wrappers, schemas, rules, queries, and examples so
-external tools emit consistent artifacts for Jenkins, MCP workflows, and platform
-ingestion.
+Repeatable Docker toolchain for offline security analysis. Build the images on a
+connected machine, export them as a bundle, then load and run them in an
+air-gapped network without internet access. The repo provides pinned images,
+wrappers, schemas, rules, queries, and examples so external tools emit
+consistent artifacts for Jenkins, MCP workflows, and platform ingestion.
 
 ---
 
@@ -89,6 +90,16 @@ make bundle TAG=1.2.3
 # → offline-bundles/out/spt-bundle-1.2.3.tar
 ```
 
+### Load and verify an offline bundle
+
+```bash
+make load-bundle TAG=1.2.3
+make verify-offline TAG=1.2.3
+```
+
+`verify-offline` starts each image with Docker networking disabled
+(`--network none`) to catch accidental runtime internet dependencies.
+
 ---
 
 ## Artifact layout
@@ -113,10 +124,12 @@ All tool images emit JSON conforming to the schemas in [`schemas/`](schemas/):
 ## Contributing
 
 1. Add a new image directory under `images/<name>/`.
-2. Include a `Dockerfile` that inherits `FROM registry.internal/security-platform/spt-base:latest`.
+2. Include a `Dockerfile` that accepts `ARG BASE_IMAGE` and inherits
+   `FROM ${BASE_IMAGE}`.
 3. Add a `run-<name>.sh` wrapper that sources `/usr/local/lib/spt/logging.sh`
    and calls `emit-job-report` at the end.
-4. Update `Makefile`, `docker-compose.yml`, and add a `README.md` for the image.
+4. Ensure the wrapper can run with Docker `--network none`.
+5. Update `Makefile`, `docker-compose.yml`, and add a `README.md` for the image.
 
 ---
 

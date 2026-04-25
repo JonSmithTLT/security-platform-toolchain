@@ -1,7 +1,8 @@
 # images/codeql/Dockerfile
 # CodeQL CLI wrapper for database creation and query execution.
 
-FROM registry.internal/security-platform/spt-base:latest
+ARG BASE_IMAGE=registry.internal/security-platform/spt-base:latest
+FROM ${BASE_IMAGE}
 
 LABEL org.opencontainers.image.description="SPT CodeQL analysis image"
 
@@ -18,7 +19,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && ln -s /opt/codeql/codeql /usr/local/bin/codeql
 
 COPY images/codeql/run-codeql.sh /usr/local/bin/run-codeql
-RUN chmod +x /usr/local/bin/run-codeql
+RUN sed -i 's/\r$//' /usr/local/bin/run-codeql \
+    && chmod +x /usr/local/bin/run-codeql
 
 USER spt
 

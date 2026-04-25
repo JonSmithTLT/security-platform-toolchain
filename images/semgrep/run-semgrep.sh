@@ -26,6 +26,7 @@ log_info "  Rules  : ${SEMGREP_RULES}"
 semgrep \
     --config "${SEMGREP_RULES}" \
     --json \
+    --metrics=off \
     --output "${RAW_DIR}/semgrep.json" \
     --timeout "${SEMGREP_TIMEOUT}" \
     --jobs "${SEMGREP_JOBS}" \

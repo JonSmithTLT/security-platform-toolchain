@@ -61,13 +61,31 @@ def _validate(instance: dict, schema_path: Path) -> None:
     jsonschema.validate(instance=instance, schema=schema)
 
 
-def _parse_extra(pairs: list[str]) -> dict[str, str]:
-    result: dict[str, str] = {}
+def _coerce_extra_value(value: str) -> Any:
+    lowered = value.lower()
+    if lowered == "true":
+        return True
+    if lowered == "false":
+        return False
+    if lowered == "null":
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        pass
+    try:
+        return float(value)
+    except ValueError:
+        return value
+
+
+def _parse_extra(pairs: list[str]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
     for pair in pairs or []:
         if "=" not in pair:
             raise ValueError(f"--extra must be KEY=VALUE, got: {pair!r}")
         k, _, v = pair.partition("=")
-        result[k.strip()] = v
+        result[k.strip()] = _coerce_extra_value(v)
     return result
 
 

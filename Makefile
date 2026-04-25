@@ -3,9 +3,10 @@
 
 REGISTRY   ?= registry.internal/security-platform
 TAG        ?= latest
+BASE_IMAGE ?= $(REGISTRY)/spt-base:$(TAG)
 IMAGES     := base c-cpp-analysis fuzzing gitnexus semgrep codeql sbom secrets corpus-tools replay-runner symbolic
 
-.PHONY: all build-all lint test bundle $(IMAGES)
+.PHONY: all build-all lint test test-offline verify-offline bundle load-bundle push clean $(IMAGES)
 
 all: build-all
 
@@ -17,34 +18,34 @@ base:
 	docker build -t $(REGISTRY)/spt-base:$(TAG) -f images/base/Dockerfile .
 
 c-cpp-analysis: base
-	docker build -t $(REGISTRY)/spt-c-cpp-analysis:$(TAG) -f images/c-cpp-analysis/Dockerfile .
+	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-c-cpp-analysis:$(TAG) -f images/c-cpp-analysis/Dockerfile .
 
 fuzzing: base
-	docker build -t $(REGISTRY)/spt-fuzzing:$(TAG) -f images/fuzzing/Dockerfile .
+	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-fuzzing:$(TAG) -f images/fuzzing/Dockerfile .
 
 gitnexus: base
-	docker build -t $(REGISTRY)/spt-gitnexus:$(TAG) -f images/gitnexus/Dockerfile .
+	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-gitnexus:$(TAG) -f images/gitnexus/Dockerfile .
 
 semgrep: base
-	docker build -t $(REGISTRY)/spt-semgrep:$(TAG) -f images/semgrep/Dockerfile .
+	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-semgrep:$(TAG) -f images/semgrep/Dockerfile .
 
 codeql: base
-	docker build -t $(REGISTRY)/spt-codeql:$(TAG) -f images/codeql/Dockerfile .
+	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-codeql:$(TAG) -f images/codeql/Dockerfile .
 
 sbom: base
-	docker build -t $(REGISTRY)/spt-sbom:$(TAG) -f images/sbom/Dockerfile .
+	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-sbom:$(TAG) -f images/sbom/Dockerfile .
 
 secrets: base
-	docker build -t $(REGISTRY)/spt-secrets:$(TAG) -f images/secrets/Dockerfile .
+	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-secrets:$(TAG) -f images/secrets/Dockerfile .
 
 corpus-tools: base
-	docker build -t $(REGISTRY)/spt-corpus-tools:$(TAG) -f images/corpus-tools/Dockerfile .
+	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-corpus-tools:$(TAG) -f images/corpus-tools/Dockerfile .
 
 replay-runner: base
-	docker build -t $(REGISTRY)/spt-replay-runner:$(TAG) -f images/replay-runner/Dockerfile .
+	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-replay-runner:$(TAG) -f images/replay-runner/Dockerfile .
 
 symbolic: base
-	docker build -t $(REGISTRY)/spt-symbolic:$(TAG) -f images/symbolic/Dockerfile .
+	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-symbolic:$(TAG) -f images/symbolic/Dockerfile .
 
 ## ── Lint ───────────────────────────────────────────────────────────────────
 
@@ -76,21 +77,39 @@ test:
 	@python3 -m pytest common/ -v
 	@echo "Tests passed."
 
+test-offline verify-offline:
+	@echo "==> Smoke-testing images with Docker network disabled"
+	@for img in $(IMAGES); do \
+	    name="spt-$$img"; \
+	    echo "  -> $(REGISTRY)/$$name:$(TAG) (--network none)"; \
+	    docker run --rm --network none $(REGISTRY)/$$name:$(TAG) /bin/true || exit 1; \
+	done
+	@echo "Offline smoke test passed."
+
 ## ── Bundle (offline / air-gap) ─────────────────────────────────────────────
 
 BUNDLE_DIR ?= offline-bundles/out
 BUNDLE_TAR  = $(BUNDLE_DIR)/spt-bundle-$(TAG).tar
+BUNDLE_MANIFEST = $(BUNDLE_DIR)/spt-bundle-$(TAG).manifest.json
 
-bundle: build-all
+bundle: build-all verify-offline
 	@mkdir -p $(BUNDLE_DIR)
 	@echo "==> Saving all images to $(BUNDLE_TAR)"
 	@docker save \
 	    $(foreach img,$(IMAGES),$(REGISTRY)/spt-$(img):$(TAG)) \
 	    -o $(BUNDLE_TAR)
 	@echo "Bundle written to $(BUNDLE_TAR)"
+	@echo "==> Writing image inventory to $(BUNDLE_MANIFEST)"
+	@docker image inspect \
+	    $(foreach img,$(IMAGES),$(REGISTRY)/spt-$(img):$(TAG)) \
+	    > $(BUNDLE_MANIFEST)
 	@echo "==> Generating SHA-256 checksum"
 	@sha256sum $(BUNDLE_TAR) > $(BUNDLE_TAR).sha256
 	@cat $(BUNDLE_TAR).sha256
+
+load-bundle:
+	@echo "==> Loading images from $(BUNDLE_TAR)"
+	@docker load -i $(BUNDLE_TAR)
 
 ## ── Push ───────────────────────────────────────────────────────────────────
 

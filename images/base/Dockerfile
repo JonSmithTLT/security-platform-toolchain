@@ -10,6 +10,7 @@ LABEL org.opencontainers.image.source="https://github.com/JonSmithTLT/security-p
 
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive \
+    PIP_BREAK_SYSTEM_PACKAGES=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
@@ -37,7 +38,11 @@ COPY common/entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY common/emit-job-report.py /usr/local/bin/emit-job-report
 COPY schemas/             /usr/local/share/spt/schemas/
 
-RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/emit-job-report
+RUN sed -i 's/\r$//' \
+        /usr/local/lib/spt/logging.sh \
+        /usr/local/bin/entrypoint.sh \
+        /usr/local/bin/emit-job-report \
+    && chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/emit-job-report
 
 # ── Non-root user ───────────────────────────────────────────────────────────
 RUN groupadd --gid 1001 spt && \

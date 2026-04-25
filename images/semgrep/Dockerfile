@@ -1,7 +1,8 @@
 # images/semgrep/Dockerfile
 # Semgrep SAST scanner with custom rule support.
 
-FROM registry.internal/security-platform/spt-base:latest
+ARG BASE_IMAGE=registry.internal/security-platform/spt-base:latest
+FROM ${BASE_IMAGE}
 
 LABEL org.opencontainers.image.description="SPT Semgrep SAST image"
 
@@ -10,7 +11,8 @@ USER root
 RUN pip3 install --no-cache-dir semgrep==1.75.0
 
 COPY images/semgrep/run-semgrep.sh /usr/local/bin/run-semgrep
-RUN chmod +x /usr/local/bin/run-semgrep
+RUN sed -i 's/\r$//' /usr/local/bin/run-semgrep \
+    && chmod +x /usr/local/bin/run-semgrep
 
 USER spt
 

@@ -1,0 +1,14 @@
+.git
+.gitignore
+.dockerignore
+
+artifacts/
+offline-bundles/out/
+__pycache__/
+.pytest_cache/
+
+*.pyc
+*.tar
+*.tar.gz
+*.zip
+*.log

@@ -1,7 +1,8 @@
 # images/secrets/Dockerfile
 # Secret scanning with Gitleaks and TruffleHog.
 
-FROM registry.internal/security-platform/spt-base:latest
+ARG BASE_IMAGE=registry.internal/security-platform/spt-base:latest
+FROM ${BASE_IMAGE}
 
 LABEL org.opencontainers.image.description="SPT secrets scanning image"
 
@@ -18,7 +19,8 @@ RUN curl -fsSL \
     | tar -xz -C /usr/local/bin trufflehog
 
 COPY images/secrets/run-secrets.sh /usr/local/bin/run-secrets
-RUN chmod +x /usr/local/bin/run-secrets
+RUN sed -i 's/\r$//' /usr/local/bin/run-secrets \
+    && chmod +x /usr/local/bin/run-secrets
 
 USER spt
 

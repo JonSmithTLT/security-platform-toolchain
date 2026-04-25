@@ -23,13 +23,17 @@ services:
     <<: *common
     image: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
     build:
-      context: images/base
+      context: .
+      dockerfile: images/base/Dockerfile
 
   c-cpp-analysis:
     <<: *common
     image: ${REGISTRY:-registry.internal/security-platform}/spt-c-cpp-analysis:${TAG:-latest}
     build:
-      context: images/c-cpp-analysis
+      context: .
+      dockerfile: images/c-cpp-analysis/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
     environment:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - JOB_ID=${JOB_ID:-local}
@@ -43,7 +47,10 @@ services:
     <<: *common
     image: ${REGISTRY:-registry.internal/security-platform}/spt-fuzzing:${TAG:-latest}
     build:
-      context: images/fuzzing
+      context: .
+      dockerfile: images/fuzzing/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
     environment:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - JOB_ID=${JOB_ID:-local}
@@ -60,7 +67,10 @@ services:
     <<: *common
     image: ${REGISTRY:-registry.internal/security-platform}/spt-gitnexus:${TAG:-latest}
     build:
-      context: images/gitnexus
+      context: .
+      dockerfile: images/gitnexus/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
     environment:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - JOB_ID=${JOB_ID:-local}
@@ -78,7 +88,10 @@ services:
     <<: *common
     image: ${REGISTRY:-registry.internal/security-platform}/spt-semgrep:${TAG:-latest}
     build:
-      context: images/semgrep
+      context: .
+      dockerfile: images/semgrep/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
     environment:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - JOB_ID=${JOB_ID:-local}
@@ -94,7 +107,10 @@ services:
     <<: *common
     image: ${REGISTRY:-registry.internal/security-platform}/spt-codeql:${TAG:-latest}
     build:
-      context: images/codeql
+      context: .
+      dockerfile: images/codeql/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
     environment:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - JOB_ID=${JOB_ID:-local}
@@ -110,7 +126,10 @@ services:
     <<: *common
     image: ${REGISTRY:-registry.internal/security-platform}/spt-sbom:${TAG:-latest}
     build:
-      context: images/sbom
+      context: .
+      dockerfile: images/sbom/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
     environment:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - JOB_ID=${JOB_ID:-local}
@@ -125,7 +144,10 @@ services:
     <<: *common
     image: ${REGISTRY:-registry.internal/security-platform}/spt-secrets:${TAG:-latest}
     build:
-      context: images/secrets
+      context: .
+      dockerfile: images/secrets/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
     environment:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - JOB_ID=${JOB_ID:-local}
@@ -139,7 +161,10 @@ services:
     <<: *common
     image: ${REGISTRY:-registry.internal/security-platform}/spt-corpus-tools:${TAG:-latest}
     build:
-      context: images/corpus-tools
+      context: .
+      dockerfile: images/corpus-tools/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
     environment:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - JOB_ID=${JOB_ID:-local}
@@ -153,7 +178,10 @@ services:
     <<: *common
     image: ${REGISTRY:-registry.internal/security-platform}/spt-replay-runner:${TAG:-latest}
     build:
-      context: images/replay-runner
+      context: .
+      dockerfile: images/replay-runner/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
     environment:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - JOB_ID=${JOB_ID:-local}
@@ -168,7 +196,10 @@ services:
     <<: *common
     image: ${REGISTRY:-registry.internal/security-platform}/spt-symbolic:${TAG:-latest}
     build:
-      context: images/symbolic
+      context: .
+      dockerfile: images/symbolic/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
     environment:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - JOB_ID=${JOB_ID:-local}

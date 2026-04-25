@@ -1,7 +1,8 @@
 # images/symbolic/Dockerfile
 # Symbolic execution using angr (Python) and optional KLEE support.
 
-FROM registry.internal/security-platform/spt-base:latest
+ARG BASE_IMAGE=registry.internal/security-platform/spt-base:latest
+FROM ${BASE_IMAGE}
 
 LABEL org.opencontainers.image.description="SPT symbolic execution image"
 
@@ -18,7 +19,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY images/symbolic/run-symbolic.sh /usr/local/bin/run-symbolic
 COPY images/symbolic/angr-explore.py /usr/local/lib/spt/angr-explore.py
-RUN chmod +x /usr/local/bin/run-symbolic
+RUN sed -i 's/\r$//' \
+        /usr/local/bin/run-symbolic \
+        /usr/local/lib/spt/angr-explore.py \
+    && chmod +x /usr/local/bin/run-symbolic
 
 USER spt
 

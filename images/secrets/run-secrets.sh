@@ -37,6 +37,7 @@ _run_trufflehog() {
     log_info "Running TruffleHog"
     trufflehog filesystem "${TARGET_REPO}" \
         --json \
+        --no-verification \
         2>&1 | tee "${RAW_DIR}/trufflehog.jsonl" | \
         tee -a "${ARTIFACTS_DIR}/logs/secrets.log" || true
     COUNT=$(wc -l < "${RAW_DIR}/trufflehog.jsonl" 2>/dev/null || echo 0)

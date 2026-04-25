@@ -1,7 +1,8 @@
 # images/gitnexus/Dockerfile
 # Git + Nexus Repository Manager helper — clone repos and push/pull artifacts.
 
-FROM registry.internal/security-platform/spt-base:latest
+ARG BASE_IMAGE=registry.internal/security-platform/spt-base:latest
+FROM ${BASE_IMAGE}
 
 LABEL org.opencontainers.image.description="SPT git + Nexus artifact helper"
 
@@ -14,7 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY images/gitnexus/gitnexus.sh /usr/local/bin/gitnexus
-RUN chmod +x /usr/local/bin/gitnexus
+RUN sed -i 's/\r$//' /usr/local/bin/gitnexus \
+    && chmod +x /usr/local/bin/gitnexus
 
 USER spt
 
