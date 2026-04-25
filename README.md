@@ -27,9 +27,9 @@ security-platform-toolchain/
 │
 ├── images/                     # one sub-directory per tool image
 │   ├── base/                   # Ubuntu 24.04 base layer + shared scripts
-│   ├── c-cpp-analysis/         # clang-tidy + cppcheck
+│   ├── c-cpp-analysis/         # clang-tidy, cppcheck, sanitizers (ASan/UBSan/TSan), scan-build, Valgrind/Helgrind, compiler hardening, libFuzzer
 │   ├── fuzzing/                # AFL++
-│   ├── gitnexus/               # git clone + Nexus push/pull
+│   ├── gitnexus/               # GitNexus CLI/MCP code intelligence graph
 │   ├── semgrep/                # Semgrep SAST
 │   ├── codeql/                 # CodeQL CLI
 │   ├── sbom/                   # Syft (CycloneDX / SPDX)
@@ -60,8 +60,10 @@ security-platform-toolchain/
 
 ### Build all images
 
+> **Warning:** Do not use `latest` in Jenkins/platform jobs; pin tags or digests.
+
 ```bash
-make build-all REGISTRY=ghcr.io/jonsmithtlt TAG=latest
+make build-all REGISTRY=registry.internal/security-platform TAG=0.1.0
 ```
 
 ### Run a single tool
@@ -71,7 +73,7 @@ docker run --rm \
   -e JOB_ID=dev-001 \
   -v $(pwd):/workspace:ro \
   -v $(pwd)/artifacts:/artifacts \
-  ghcr.io/jonsmithtlt/spt-semgrep:latest
+  registry.internal/security-platform/spt-semgrep:0.1.0
 ```
 
 ### Run the full stack with docker-compose
