@@ -209,6 +209,33 @@ services:
     security_opt:
       - seccomp:unconfined   # required by AFL++
 
+  harness-builder:
+    <<: *common
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-harness-builder:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: images/harness-builder/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
+
+  protocol-fuzzing:
+    <<: *common
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-protocol-fuzzing:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: images/protocol-fuzzing/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
+
+  crash-triage:
+    <<: *common
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-crash-triage:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: images/crash-triage/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
+
   gitnexus:
     <<: *common
     image: ${REGISTRY:-registry.internal/security-platform}/spt-gitnexus:${TAG:-latest}

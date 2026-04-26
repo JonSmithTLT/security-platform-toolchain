@@ -15,3 +15,6 @@ The generated data may include advisory PoC text, exploit commands, webshell
 snippets, suspicious indicators, and security scanner fixtures. See
 `../SECURITY_NOTES.md` before transferring or scanning the bundle.
 
+GitNexus/LadybugDB extension payloads, when fetched, live under
+`ladybug-extensions/` and are used to avoid runtime `fts`/`vector` extension
+downloads in air-gapped runs.

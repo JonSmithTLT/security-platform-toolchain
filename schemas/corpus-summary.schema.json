@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/JonSmithTLT/security-platform-toolchain/schemas/corpus-summary.schema.json",
+  "title": "CorpusSummary",
+  "type": "object",
+  "required": ["schema_version", "input_file_count", "output_file_count"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "input_file_count": { "type": "integer", "minimum": 0 },
+    "output_file_count": { "type": "integer", "minimum": 0 },
+    "bytes_before": { "type": "integer", "minimum": 0 },
+    "bytes_after": { "type": "integer", "minimum": 0 },
+    "unique_hashes": { "type": "integer", "minimum": 0 },
+    "duplicate_count": { "type": "integer", "minimum": 0 },
+    "minimized_count": { "type": "integer", "minimum": 0 },
+    "coverage_delta": { "type": "number" },
+    "promoted_seeds": { "type": "array", "items": { "type": "string" } },
+    "rejected_seeds": { "type": "array", "items": { "type": "string" } }
+  }
+}

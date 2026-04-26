@@ -39,6 +39,7 @@ Fetch or stage datasets under `data-bundles/sources/`, then bundle them:
 make data-fetch TAG=2026-04-25
 make data-bundle TAG=2026-04-25
 make data-bundle-smoke TAG=2026-04-25
+make functional-smoke TAG=2026-04-25 DATA_DIR=data-bundles/sources
 ```
 
 `make data-fetch` runs every script under `data-bundles/fetch/`.
@@ -84,6 +85,7 @@ docker run --rm --network none \
 | CISA KEV | Known exploited vulnerability catalog |
 | NVD/CVE | CVE records and CVSS data |
 | OSV | Open source vulnerability database |
+| LadybugDB extensions | Offline `fts`/`vector` extensions used by GitNexus |
 | EPSS | Exploit prediction scores |
 | GitHub Advisory DB | Ecosystem advisories |
 | YARA rules | File and malware triage rules |
@@ -110,6 +112,10 @@ sources can be overridden through environment variables.
 | `CODEQL_USE_DOCKER` | Use Docker for CodeQL pack downloads when available. Default: `auto`; set `0` to force local `codeql` |
 | `OSV_FETCH_MODE` | OSV DB fetch mode. Default: `direct`; set `scanner` to use local `osv-scanner` |
 | `OSV_ECOSYSTEMS` | Optional space-separated OSV ecosystems to fetch. Default: all ecosystems from OSV |
+| `LADYBUG_EXTENSION_VERSION` | Backward-compatible single LadybugDB extension version. Default: `v0.15.0` |
+| `LADYBUG_EXTENSION_VERSIONS` | Space-separated LadybugDB extension versions. Default: `v0.15.0` |
+| `LADYBUG_EXTENSION_PLATFORM` | LadybugDB extension platform. Default: `linux_amd64` |
+| `LADYBUG_EXTENSIONS` | LadybugDB extensions to fetch. Default: `fts vector` |
 | `VENDOR_ADVISORY_URLS` | Space-separated vendor advisory URLs to fetch |
 | `CISA_KEV_URL` | Override CISA KEV URL |
 | `CWE_URL` | Override CWE URL |
@@ -129,6 +135,39 @@ data-bundles/sources/osv/osv-scanner/<ecosystem>/all.zip
 ```
 
 Set `OSV_FETCH_MODE=scanner` to use a locally installed `osv-scanner` instead.
+
+## GitNexus / LadybugDB Extensions
+
+GitNexus uses LadybugDB for local graph storage. Some GitNexus versions try to
+load the `fts` and `vector` extensions at runtime. In an air-gapped
+environment, those downloads fail unless the extensions are staged locally.
+
+`make data-fetch` stores them under:
+
+```text
+data-bundles/sources/ladybug-extensions/<version>/<platform>/<extension>/lib<extension>.lbug_extension
+```
+
+Mount them into GitNexus with:
+
+```bash
+docker run --rm --network none \
+  -e GITNEXUS_MODE=analyze \
+  -e GITNEXUS_TARGET=/workspace \
+  -e GITNEXUS_REQUIRE_LADYBUG_EXTENSIONS=1 \
+  -e GITNEXUS_LADYBUG_EXTENSIONS_DIR=/data/ladybug-extensions \
+  -e GITNEXUS_OFFLINE=1 \
+  -e SPT_OFFLINE=1 \
+  -v /opt/spt-data/sources/ladybug-extensions:/data/ladybug-extensions:ro \
+  -v "$PWD:/workspace" \
+  -v "$PWD/artifacts/gitnexus:/artifacts" \
+  "$REGISTRY/spt-gitnexus:$TAG"
+```
+
+The wrapper stages these extensions into a writable local cache before running
+GitNexus. The main `make functional-smoke` gate now verifies that GitNexus can
+index a real fixture git repo, load Ladybug extensions offline, emit index
+artifacts, and avoid external extension fetches.
 
 ## Rule Defaults
 

@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/JonSmithTLT/security-platform-toolchain/schemas/replay-result.schema.json",
+  "title": "ReplayResult",
+  "type": "object",
+  "required": ["schema_version", "status", "results"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "status": { "type": "string", "enum": ["fixed", "still_repro", "flaky", "environment_error", "mixed"] },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["input", "input_sha256", "command", "exit_code", "status"],
+        "additionalProperties": true,
+        "properties": {
+          "input": { "type": "string" },
+          "input_sha256": { "type": "string" },
+          "binary_sha256": { "type": "string" },
+          "command": { "type": "string" },
+          "exit_code": { "type": "integer" },
+          "signal": { "type": "string" },
+          "timeout": { "type": "boolean" },
+          "stdout": { "type": "string" },
+          "stderr": { "type": "string" },
+          "matched_prior_crash": { "type": "boolean" },
+          "signature_changed": { "type": "boolean" },
+          "status": { "type": "string", "enum": ["fixed", "still_repro", "flaky", "environment_error"] }
+        }
+      }
+    }
+  }
+}

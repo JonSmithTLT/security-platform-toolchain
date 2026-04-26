@@ -15,7 +15,9 @@ source /usr/local/lib/spt/logging.sh
 RESULTS_DIR="${ARTIFACTS_DIR}/results/replay-runner"
 EVIDENCE_DIR="${RESULTS_DIR}/evidence"
 RAW_DIR="${RESULTS_DIR}/raw"
-mkdir -p "${EVIDENCE_DIR}" "${RAW_DIR}" "${ARTIFACTS_DIR}/logs"
+NORM_DIR="${RESULTS_DIR}/normalized"
+REPORT_DIR="${RESULTS_DIR}/reports"
+mkdir -p "${EVIDENCE_DIR}" "${RAW_DIR}" "${NORM_DIR}" "${REPORT_DIR}" "${ARTIFACTS_DIR}/logs"
 
 START_TIME=$(date +%s)
 CRASHES_REPRODUCED=0
@@ -28,8 +30,10 @@ log_info "  Timeout/run : ${REPLAY_TIMEOUT}s"
 
 REPLAY_RESULTS="${RAW_DIR}/replay-results.json"
 echo "[]" > "${REPLAY_RESULTS}"
+REPLAY_NORMALIZED="${NORM_DIR}/replay-result.json"
+echo '{"schema_version":"1.0.0","status":"fixed","results":[]}' > "${REPLAY_NORMALIZED}"
 
-find "${CRASH_DIR}" -type f | sort | while read -r crash; do
+while read -r crash; do
     CRASHES_TOTAL=$(( CRASHES_TOTAL + 1 ))
     CRASH_NAME="$(basename "${crash}")"
     log_info "Replaying ${CRASH_NAME}"
@@ -63,12 +67,41 @@ find "${CRASH_DIR}" -type f | sort | while read -r crash; do
        '. += [{"crash": $name, "reproduced": ($reproduced == "true"), "exit_code": ($exit_code | tonumber), "output": $output}]' \
        "${REPLAY_RESULTS}" > "${REPLAY_RESULTS}.tmp" && \
     mv "${REPLAY_RESULTS}.tmp" "${REPLAY_RESULTS}"
-done
+
+    INPUT_HASH=$(sha256sum "${crash}" | awk '{print $1}')
+    BINARY_HASH=$(sha256sum "${REPLAY_TARGET}" 2>/dev/null | awk '{print $1}')
+    RESULT_STATUS="fixed"
+    [[ "${REPRODUCED}" == "true" ]] && RESULT_STATUS="still_repro"
+    jq --arg input "${crash}" \
+       --arg input_hash "${INPUT_HASH}" \
+       --arg binary_hash "${BINARY_HASH}" \
+       --arg command "${CMD[*]}" \
+       --arg exit_code "${EXIT_CODE}" \
+       --arg status "${RESULT_STATUS}" \
+       '.results += [{"input": $input, "input_sha256": $input_hash, "binary_sha256": $binary_hash, "command": $command, "exit_code": ($exit_code | tonumber), "timeout": false, "stdout": "", "stderr": "", "matched_prior_crash": false, "signature_changed": false, "status": $status}]' \
+       "${REPLAY_NORMALIZED}" > "${REPLAY_NORMALIZED}.tmp" && \
+    mv "${REPLAY_NORMALIZED}.tmp" "${REPLAY_NORMALIZED}"
+done < <(find "${CRASH_DIR}" -type f | sort)
 
 log_info "Reproduced ${CRASHES_REPRODUCED}/${CRASHES_TOTAL} crashes"
 
 STATUS=success
 [[ "${CRASHES_REPRODUCED}" -gt 0 ]] && STATUS=failure
+REPLAY_STATUS="fixed"
+[[ "${CRASHES_REPRODUCED}" -gt 0 ]] && REPLAY_STATUS="still_repro"
+jq --arg status "${REPLAY_STATUS}" '.status = $status' "${REPLAY_NORMALIZED}" > "${REPLAY_NORMALIZED}.tmp" && mv "${REPLAY_NORMALIZED}.tmp" "${REPLAY_NORMALIZED}"
+
+cat > "${REPORT_DIR}/replay-summary.md" <<EOF
+# Replay Summary
+
+- Status: ${REPLAY_STATUS}
+- Total inputs: ${CRASHES_TOTAL}
+- Reproduced: ${CRASHES_REPRODUCED}
+EOF
+
+cat > "${RESULTS_DIR}/tool-result.json" <<JSON
+{"schema_version":"1.0.0","tool":"replay-runner","target":"${REPLAY_TARGET}","summary":{"total":${CRASHES_REPRODUCED},"critical":0,"high":${CRASHES_REPRODUCED},"medium":0,"low":0,"info":0},"findings":[]}
+JSON
 
 END_TIME=$(date +%s)
 DURATION=$(( END_TIME - START_TIME ))
@@ -76,6 +109,7 @@ DURATION=$(( END_TIME - START_TIME ))
 emit-job-report \
     --tool replay-runner \
     --status "${STATUS}" \
+    --results-file "${RESULTS_DIR}/tool-result.json" \
     --extra "duration_seconds=${DURATION}" \
     --extra "crashes_total=${CRASHES_TOTAL}" \
     --extra "crashes_reproduced=${CRASHES_REPRODUCED}"

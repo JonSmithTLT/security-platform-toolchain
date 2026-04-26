@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/JonSmithTLT/security-platform-toolchain/schemas/harness-manifest.schema.json",
+  "title": "HarnessManifest",
+  "type": "object",
+  "required": ["schema_version", "tool", "harness", "engine", "status"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "tool": { "type": "string", "minLength": 1 },
+    "harness": { "type": "string", "minLength": 1 },
+    "engine": { "type": "string", "enum": ["afl", "libfuzzer", "honggfuzz", "boofuzz", "unit", "unknown"] },
+    "template": { "type": "string" },
+    "target_module": { "type": "string" },
+    "source_dir": { "type": "string" },
+    "build_dir": { "type": "string" },
+    "binary": { "type": "string" },
+    "binary_sha256": { "type": "string" },
+    "status": { "type": "string", "enum": ["generated", "built", "smoked", "failed"] },
+    "commands": { "type": "array", "items": { "type": "string" } },
+    "artifacts": { "type": "array", "items": { "type": "string" } }
+  }
+}

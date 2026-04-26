@@ -60,6 +60,23 @@ This writes the same bundle tar, checksum, manifest, and image list under
 
 ## Restoring a bundle (air-gapped host)
 
+For release-candidate validation, use the restore driver:
+
+```bash
+make release-restore \
+  REGISTRY=registry.internal/security-platform \
+  TAG=1.2.3 \
+  BUNDLE_DIR=offline-bundles/out \
+  DATA_BUNDLE_DIR=data-bundles/out \
+  RUN_FUNCTIONAL=1
+```
+
+It verifies split image/data assets, reassembles tarballs when needed, loads
+the images, confirms all images start with `--network none`, extracts the data
+bundle, runs data-bundle smoke, and optionally runs the full functional smoke.
+
+The manual equivalent is:
+
 ```bash
 # 1. Verify integrity
 sha256sum -c spt-bundle-1.2.3.tar.sha256
@@ -71,6 +88,27 @@ make load-bundle TAG=1.2.3
 make verify-offline TAG=1.2.3
 ```
 
+If the image bundle was split into GitHub Release asset parts, reassemble it
+first:
+
+```bash
+sha256sum -c spt-bundle-1.2.3.parts.sha256
+cat spt-bundle-1.2.3.tar.part-* > spt-bundle-1.2.3.tar
+sha256sum -c spt-bundle-1.2.3.tar.sha256
+docker load -i spt-bundle-1.2.3.tar
+make verify-offline TAG=1.2.3
+```
+
+For a release-candidate validation pass, also run the functional smoke from the
+loaded images with the staged data bundle mounted:
+
+```bash
+make functional-smoke \
+  REGISTRY=registry.internal/security-platform \
+  TAG=1.2.3 \
+  DATA_DIR=/opt/spt-data/sources
+```
+
 ---
 
 ## Pushing to an internal registry after restore
@@ -78,7 +116,7 @@ make verify-offline TAG=1.2.3
 ```bash
 INTERNAL_REGISTRY=registry.internal.example.com:5000
 
-for img in base schema-validator result-normalizers c-cpp-analysis coverage-tools fuzzing replay-runner sbom osv-scanner secrets image-scanner re-lightweight yara intel-ingest rag-indexer diff-impact ghidra-base ghidra-exporter ghidra-mcp eval-runner gitnexus semgrep codeql corpus-tools symbolic; do
+for img in base schema-validator result-normalizers c-cpp-analysis coverage-tools harness-builder fuzzing protocol-fuzzing crash-triage replay-runner sbom osv-scanner secrets image-scanner re-lightweight yara intel-ingest rag-indexer diff-impact ghidra-base ghidra-exporter ghidra-mcp eval-runner gitnexus semgrep codeql corpus-tools symbolic; do
     docker tag registry.internal/security-platform/spt-${img}:1.2.3 \
                ${INTERNAL_REGISTRY}/spt-${img}:1.2.3
     docker push ${INTERNAL_REGISTRY}/spt-${img}:1.2.3

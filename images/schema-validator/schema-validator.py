@@ -20,6 +20,13 @@ SCHEMA_BY_NAME = {
     "job-report.json": "job-report.schema.json",
     "manifest.json": "artifact-manifest.schema.json",
     "tool-result.json": "tool-result.schema.json",
+    "harness-manifest.json": "harness-manifest.schema.json",
+    "fuzz-campaign.json": "fuzz-campaign.schema.json",
+    "crashes.json": "crashes.schema.json",
+    "crash-triage.json": "crash-triage.schema.json",
+    "protocol-campaign.json": "protocol-campaign.schema.json",
+    "replay-result.json": "replay-result.schema.json",
+    "corpus-summary.json": "corpus-summary.schema.json",
 }
 
 
@@ -44,11 +51,7 @@ def schema_store(schemas_dir: Path) -> dict[str, Any]:
 
 
 def schema_for(path: Path) -> str | None:
-    if path.name == "job-report.json":
-        return SCHEMA_BY_NAME[path.name]
-    if path.name == "manifest.json":
-        return SCHEMA_BY_NAME[path.name]
-    if path.name == "tool-result.json":
+    if path.name in SCHEMA_BY_NAME:
         return SCHEMA_BY_NAME[path.name]
     return None
 
@@ -62,6 +65,9 @@ def candidate_files(target: Path) -> list[Path]:
         if path.exists():
             files.append(path)
     files.extend(sorted((target / "results").glob("*/tool-result.json")))
+    for path in sorted((target / "results").glob("*/normalized/*.json")):
+        if schema_for(path):
+            files.append(path)
     return files
 
 

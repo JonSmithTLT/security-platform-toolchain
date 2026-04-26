@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/JonSmithTLT/security-platform-toolchain/schemas/crashes.schema.json",
+  "title": "Crashes",
+  "type": "object",
+  "required": ["schema_version", "crashes"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "crashes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "path", "sha256"],
+        "additionalProperties": true,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "path": { "type": "string", "minLength": 1 },
+          "sha256": { "type": "string", "minLength": 1 },
+          "engine": { "type": "string" },
+          "kind": { "type": "string", "enum": ["crash", "hang", "failure", "unknown"] },
+          "replay_command": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -32,7 +32,10 @@ security-platform-toolchain/
 │   ├── result-normalizers/     # converts raw tool output to tool-result JSON
 │   ├── c-cpp-analysis/         # clang-tidy, cppcheck, sanitizers (ASan/UBSan/TSan), scan-build, Valgrind/Helgrind, compiler hardening, libFuzzer
 │   ├── coverage-tools/         # gcovr/lcov coverage reports
-│   ├── fuzzing/                # AFL++
+│   ├── harness-builder/        # generate/build/smoke harnesses
+│   ├── fuzzing/                # AFL++ / libFuzzer compiled harness fuzzing
+│   ├── protocol-fuzzing/       # boofuzz protocol/session fuzzing
+│   ├── crash-triage/           # crash explanation, dedup, symbolization, repro evidence
 │   ├── replay-runner/          # crash replay + Valgrind
 │   ├── sbom/                   # Syft (CycloneDX / SPDX)
 │   ├── osv-scanner/            # OSV dependency scanning
@@ -72,6 +75,32 @@ security-platform-toolchain/
 ---
 
 ## Quick start
+
+Release operators should start with:
+
+- [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md)
+- [`RELEASE_NOTES_0.1.1-smoke.md`](RELEASE_NOTES_0.1.1-smoke.md)
+- [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md)
+- [`SECURITY_NOTES.md`](SECURITY_NOTES.md)
+
+The connected-side release driver is:
+
+```bash
+make release-smoke REGISTRY=registry.internal/security-platform TAG=0.1.1-smoke DATA_DIR=data-bundles/sources
+```
+
+It runs the smoke checklist, creates image/data bundles, splits large tarballs,
+verifies checksums, and writes upload helper files under `offline-bundles/out/`.
+
+The restore-side validation driver is:
+
+```bash
+make release-restore REGISTRY=registry.internal/security-platform TAG=0.1.1-smoke RUN_FUNCTIONAL=1
+```
+
+It verifies split image/data assets, reassembles bundles, loads images, runs
+offline startup checks, extracts the data bundle, and optionally reruns the full
+functional smoke from the restored artifacts.
 
 ### Build all images
 
@@ -138,23 +167,29 @@ make verify-offline TAG=1.2.3
 ### Run functional smoke tests
 
 ```bash
-make functional-smoke REGISTRY=registry.internal/security-platform TAG=1.2.3
+make functional-smoke \
+  REGISTRY=registry.internal/security-platform \
+  TAG=1.2.3 \
+  DATA_DIR=data-bundles/sources
 ```
 
-This creates a tiny local fixture under `artifacts/functional-smoke`, then runs
+This creates tiny local fixtures under `artifacts/functional-smoke`, then runs
 selected images with Docker networking disabled to prove real behavior:
 Semgrep detection, result normalization, schema validation, SBOM generation,
-Gitleaks execution, Grype execution, C/C++ analysis execution, coverage output,
-YARA scanning, lightweight RE triage, intel ingestion, RAG indexing,
-diff-impact output, and eval execution.
+Gitleaks execution, Grype execution, C/C++ analysis execution, harness build
+and smoke, AFL/libFuzzer campaign execution, boofuzz protocol failure capture,
+ASAN crash triage, coverage output, YARA scanning, lightweight RE triage, intel
+ingestion, RAG indexing, diff-impact output, GitNexus real git repo indexing
+with offline Ladybug extension loading, eval execution, and Ghidra MCP runtime
+metadata.
 
 Smoke test levels:
 
 | Target | Purpose |
 |--------|---------|
 | `make verify-offline` | Image-only startup check. Every image starts with Docker networking disabled. |
-| `make functional-smoke` | Fixture-data check. Tiny local fixtures prove implemented tools work offline. |
-| `make data-bundle-smoke` | Full-data discovery check. Mounted/staged data bundle contains expected OSV, YARA, Semgrep, CodeQL, and intel datasets. |
+| `make functional-smoke` | Fixture and mounted-data check. Tiny local fixtures prove implemented tools work offline; GitNexus also requires staged Ladybug extensions from `DATA_DIR`. |
+| `make data-bundle-smoke` | Full-data discovery check. Mounted/staged data bundle contains expected OSV, Ladybug, YARA, Semgrep, CodeQL, and intel datasets. |
 
 ### Create an offline data bundle
 
@@ -198,6 +233,10 @@ Current release notes:
 - Known AV-sensitive source: GitHub Advisory Database entries can include
   PoC/webshell/RCE strings and may be flagged by Defender or similar tooling.
 
+For the current smoke release, see
+[`RELEASE_NOTES_0.1.1-smoke.md`](RELEASE_NOTES_0.1.1-smoke.md) and
+[`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md).
+
 ---
 
 ## Artifact layout
@@ -226,7 +265,7 @@ The current platform spine is `base`, `schema-validator`, `result-normalizers`,
 they can travel in the offline bundle and run useful offline workflows. They
 should be deepened in this order:
 
-1. `c-cpp-analysis`, `coverage-tools`, `fuzzing`, `replay-runner`
+1. `c-cpp-analysis`, `coverage-tools`, `harness-builder`, `fuzzing`, `protocol-fuzzing`, `crash-triage`, `replay-runner`
 2. `sbom`, `osv-scanner`, `secrets`, `image-scanner`
 3. `re-lightweight`, `yara`, `intel-ingest`, `rag-indexer`, `diff-impact`
 4. `ghidra-base`, `ghidra-exporter`, `ghidra-mcp`, `eval-runner`, `codeql`, `symbolic`
@@ -234,6 +273,17 @@ should be deepened in this order:
 `ghidra-exporter` should be the controlled batch producer for platform
 ingestion. `ghidra-mcp` should be a separate reusable local RE environment for
 analysts and agentic workflows.
+
+## Fuzzing And Triage Taxonomy
+
+| Image | Responsibility |
+|-------|----------------|
+| `harness-builder` | Generate, build, validate, smoke, and package harness skeletons before fuzzing jobs. |
+| `fuzzing` | Run coverage-guided compiled/in-process harness fuzzing with AFL++ and libFuzzer. `honggfuzz` has experimental hooks in v0.1.1 and is non-gating. |
+| `protocol-fuzzing` | Run boofuzz/network/session fuzzing and capture failing protocol cases. |
+| `crash-triage` | Explain, deduplicate, symbolize, classify, and reproduce crash evidence. |
+| `corpus-tools` | Minimize, merge, deduplicate, summarize, and promote corpora. |
+| `replay-runner` | Replay known crashes/tests/regression cases and classify them as `fixed`, `still_repro`, `flaky`, or `environment_error`. |
 
 ---
 

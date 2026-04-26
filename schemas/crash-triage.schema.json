@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/JonSmithTLT/security-platform-toolchain/schemas/crash-triage.schema.json",
+  "title": "CrashTriage",
+  "type": "object",
+  "required": ["schema_version", "crash_type", "stack_hash", "dedup_hash"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "crash_type": { "type": "string", "minLength": 1 },
+    "signal": { "type": "string" },
+    "sanitizer": { "type": "string" },
+    "binary": { "type": "string" },
+    "binary_sha256": { "type": "string" },
+    "input": { "type": "string" },
+    "input_sha256": { "type": "string" },
+    "reproduction_command": { "type": "string" },
+    "top_frame": { "type": "string" },
+    "frames": { "type": "array", "items": { "type": "string" } },
+    "source_location": { "type": "string" },
+    "stack_hash": { "type": "string", "minLength": 1 },
+    "dedup_hash": { "type": "string", "minLength": 1 },
+    "similarity_key": { "type": "string" },
+    "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+    "limitations": { "type": "array", "items": { "type": "string" } }
+  }
+}

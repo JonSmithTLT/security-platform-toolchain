@@ -5,12 +5,22 @@ set -euo pipefail
 
 REGISTRY="${1:-${REGISTRY:-registry.internal/security-platform}}"
 TAG="${2:-${TAG:-latest}}"
+DATA_DIR="${3:-${DATA_DIR:-data-bundles/sources}}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+if [[ "${DATA_DIR}" != /* ]]; then
+    DATA_DIR="${ROOT_DIR}/${DATA_DIR}"
+fi
+DATA_DIR="$(cd "${DATA_DIR}" && pwd)"
 OUT_DIR="${ROOT_DIR}/artifacts/functional-smoke"
 FIXTURE_DIR="${OUT_DIR}/fixture"
 
 log() {
     printf '==> %s\n' "$*"
+}
+
+fail() {
+    printf '%s\n' "$*" >&2
+    exit 1
 }
 
 image() {
@@ -96,6 +106,42 @@ int main(int argc, char **argv) {
     return 0;
 }
 C
+
+cat > "${FIXTURE_DIR}/afl_harness.c" <<'C'
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(int argc, char **argv) {
+    if (argc < 2) return 0;
+    FILE *fp = fopen(argv[1], "rb");
+    if (!fp) return 1;
+    char buf[8] = {0};
+    size_t n = fread(buf, 1, sizeof(buf), fp);
+    fclose(fp);
+    if (n >= 4 && buf[0] == 'C' && buf[1] == 'R' && buf[2] == 'S' && buf[3] == 'H') abort();
+    return 0;
+}
+C
+
+cat > "${FIXTURE_DIR}/libfuzzer_harness.c" <<'C'
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+    if (size >= 4 && data[0] == 'C' && data[1] == 'R' && data[2] == 'S' && data[3] == 'H') abort();
+    return 0;
+}
+C
+
+cat > "${FIXTURE_DIR}/asan.log" <<'LOG'
+==1==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x602000000014 at pc 0x000000401234 bp 0x7fff00000000 sp 0x7fff00000000
+READ of size 1 at 0x602000000014 thread T0
+    #0 0x401234 in parse_packet /workspace/parser.c:42:9
+    #1 0x401345 in LLVMFuzzerTestOneInput /workspace/harness.c:12:5
+    #2 0x401456 in main /src/compiler-rt/lib/fuzzer/FuzzerMain.cpp:20:10
+SUMMARY: AddressSanitizer: heap-buffer-overflow /workspace/parser.c:42:9 in parse_packet
+LOG
 
 cat > "${FIXTURE_DIR}/requirements.txt" <<'REQ'
 requests==2.31.0
@@ -225,6 +271,92 @@ finalize_artifacts c-cpp-analysis "${OUT_DIR}/c-cpp-analysis"
 assert_contract c-cpp-analysis "${OUT_DIR}/c-cpp-analysis"
 assert_file "${OUT_DIR}/c-cpp-analysis/results/c-cpp-analysis/raw/cppcheck.xml"
 
+log "Harness builder generates/builds/smokes AFL harness"
+mkdir -p "${OUT_DIR}/harness-builder-afl"
+docker run --rm --network none \
+    -e JOB_ID=functional-harness-builder-afl \
+    -e ARTIFACTS_DIR=/artifacts \
+    -e HARNESS_ENGINE=afl \
+    -e HARNESS_NAME=afl_smoke \
+    -v "${OUT_DIR}/harness-builder-afl:/artifacts" \
+    "$(image harness-builder)"
+finalize_artifacts harness-builder-afl "${OUT_DIR}/harness-builder-afl"
+assert_contract harness-builder-afl "${OUT_DIR}/harness-builder-afl"
+assert_file "${OUT_DIR}/harness-builder-afl/results/harness-builder/normalized/harness-manifest.json"
+assert_file "${OUT_DIR}/harness-builder-afl/results/harness-builder/raw/generated/harness.c"
+assert_file "${OUT_DIR}/harness-builder-afl/results/harness-builder/raw/build/afl_smoke"
+
+log "Harness builder generates/builds/smokes libFuzzer harness"
+mkdir -p "${OUT_DIR}/harness-builder-libfuzzer"
+docker run --rm --network none \
+    -e JOB_ID=functional-harness-builder-libfuzzer \
+    -e ARTIFACTS_DIR=/artifacts \
+    -e HARNESS_ENGINE=libfuzzer \
+    -e HARNESS_NAME=libfuzzer_smoke \
+    -v "${OUT_DIR}/harness-builder-libfuzzer:/artifacts" \
+    "$(image harness-builder)"
+finalize_artifacts harness-builder-libfuzzer "${OUT_DIR}/harness-builder-libfuzzer"
+assert_contract harness-builder-libfuzzer "${OUT_DIR}/harness-builder-libfuzzer"
+assert_file "${OUT_DIR}/harness-builder-libfuzzer/results/harness-builder/normalized/harness-manifest.json"
+assert_file "${OUT_DIR}/harness-builder-libfuzzer/results/harness-builder/raw/generated/harness.c"
+assert_file "${OUT_DIR}/harness-builder-libfuzzer/results/harness-builder/raw/build/libfuzzer_smoke"
+
+log "Fuzzing runs AFL campaign offline"
+mkdir -p "${OUT_DIR}/fuzz-afl/corpus" "${OUT_DIR}/fuzz-afl/artifacts"
+printf 'A' > "${OUT_DIR}/fuzz-afl/corpus/seed"
+docker run --rm --network none \
+    -v "${FIXTURE_DIR}:/src:ro" \
+    -v "${OUT_DIR}/fuzz-afl/corpus:/corpus" \
+    -v "${OUT_DIR}/fuzz-afl/artifacts:/artifacts" \
+    "$(image fuzzing)" \
+    bash -lc "afl-clang-fast -g -O1 -o /tmp/afl_harness /src/afl_harness.c && FUZZ_ENGINE=afl FUZZ_TARGET=/tmp/afl_harness FUZZ_CORPUS=/corpus FUZZ_TIMEOUT=2 ARTIFACTS_DIR=/artifacts run-fuzzing"
+finalize_artifacts fuzz-afl "${OUT_DIR}/fuzz-afl/artifacts"
+assert_contract fuzz-afl "${OUT_DIR}/fuzz-afl/artifacts"
+assert_file "${OUT_DIR}/fuzz-afl/artifacts/results/fuzzing/normalized/fuzz-campaign.json"
+assert_file "${OUT_DIR}/fuzz-afl/artifacts/results/fuzzing/normalized/crashes.json"
+
+log "Fuzzing runs libFuzzer campaign offline"
+mkdir -p "${OUT_DIR}/fuzz-libfuzzer/corpus" "${OUT_DIR}/fuzz-libfuzzer/artifacts"
+printf 'A' > "${OUT_DIR}/fuzz-libfuzzer/corpus/seed"
+docker run --rm --network none \
+    -v "${FIXTURE_DIR}:/src:ro" \
+    -v "${OUT_DIR}/fuzz-libfuzzer/corpus:/corpus" \
+    -v "${OUT_DIR}/fuzz-libfuzzer/artifacts:/artifacts" \
+    "$(image fuzzing)" \
+    bash -lc "clang -g -O1 -fsanitize=fuzzer,address,undefined -o /tmp/libfuzzer_harness /src/libfuzzer_harness.c && FUZZ_ENGINE=libfuzzer FUZZ_TARGET=/tmp/libfuzzer_harness FUZZ_CORPUS=/corpus FUZZ_TIMEOUT=2 ARTIFACTS_DIR=/artifacts run-fuzzing"
+finalize_artifacts fuzz-libfuzzer "${OUT_DIR}/fuzz-libfuzzer/artifacts"
+assert_contract fuzz-libfuzzer "${OUT_DIR}/fuzz-libfuzzer/artifacts"
+assert_file "${OUT_DIR}/fuzz-libfuzzer/artifacts/results/fuzzing/normalized/fuzz-campaign.json"
+assert_file "${OUT_DIR}/fuzz-libfuzzer/artifacts/results/fuzzing/normalized/crashes.json"
+
+log "Protocol fuzzing captures toy failing case offline"
+mkdir -p "${OUT_DIR}/protocol-fuzzing"
+docker run --rm --network none \
+    -e JOB_ID=functional-protocol-fuzzing \
+    -e ARTIFACTS_DIR=/artifacts \
+    -v "${OUT_DIR}/protocol-fuzzing:/artifacts" \
+    "$(image protocol-fuzzing)"
+finalize_artifacts protocol-fuzzing "${OUT_DIR}/protocol-fuzzing"
+assert_contract protocol-fuzzing "${OUT_DIR}/protocol-fuzzing"
+assert_file "${OUT_DIR}/protocol-fuzzing/results/protocol-fuzzing/normalized/protocol-campaign.json"
+assert_json_number_gt "${OUT_DIR}/protocol-fuzzing/results/protocol-fuzzing/normalized/protocol-campaign.json" "data.get('failure_count', 0)" 0
+
+log "Crash triage parses ASAN report offline"
+mkdir -p "${OUT_DIR}/crash-triage"
+printf 'CRSH' > "${OUT_DIR}/crash.input"
+docker run --rm --network none \
+    -e JOB_ID=functional-crash-triage \
+    -e ARTIFACTS_DIR=/artifacts \
+    -e CRASH_LOG=/workspace/asan.log \
+    -e CRASH_INPUT=/workspace/crash.input \
+    -v "${FIXTURE_DIR}/asan.log:/workspace/asan.log:ro" \
+    -v "${OUT_DIR}/crash.input:/workspace/crash.input:ro" \
+    -v "${OUT_DIR}/crash-triage:/artifacts" \
+    "$(image crash-triage)"
+finalize_artifacts crash-triage "${OUT_DIR}/crash-triage"
+assert_contract crash-triage "${OUT_DIR}/crash-triage"
+assert_file "${OUT_DIR}/crash-triage/results/crash-triage/normalized/crash-triage.json"
+
 log "Coverage tools emit coverage artifacts"
 mkdir -p "${OUT_DIR}/coverage-tools"
 docker run --rm --network none \
@@ -301,6 +433,52 @@ docker run --rm --network none \
 finalize_artifacts diff-impact "${OUT_DIR}/diff-impact"
 assert_contract diff-impact "${OUT_DIR}/diff-impact"
 assert_file "${OUT_DIR}/diff-impact/results/diff-impact/raw/impact.json"
+
+log "GitNexus indexes a real git repo with offline Ladybug extensions"
+compgen -G "${DATA_DIR}/ladybug-extensions/*/*/fts/libfts.lbug_extension" >/dev/null || fail "missing LadybugDB fts extension under ${DATA_DIR}/ladybug-extensions"
+compgen -G "${DATA_DIR}/ladybug-extensions/*/*/vector/libvector.lbug_extension" >/dev/null || fail "missing LadybugDB vector extension under ${DATA_DIR}/ladybug-extensions"
+mkdir -p "${OUT_DIR}/gitnexus"
+docker run --rm --network none \
+    -e JOB_ID=functional-gitnexus \
+    -e ARTIFACTS_DIR=/artifacts \
+    -e HOME=/tmp/spt-home \
+    -e GITNEXUS_MODE=analyze \
+    -e GITNEXUS_TARGET=/tmp/gitnexus-fixture-repo \
+    -e GITNEXUS_FIXTURE_REPO=1 \
+    -e GITNEXUS_REQUIRE_LADYBUG_EXTENSIONS=1 \
+    -e GITNEXUS_LADYBUG_EXTENSIONS_DIR=/data/ladybug-extensions \
+    -e GITNEXUS_OFFLINE=1 \
+    -e SPT_OFFLINE=1 \
+    -v "${DATA_DIR}/ladybug-extensions:/data/ladybug-extensions:ro" \
+    -v "${OUT_DIR}/gitnexus:/artifacts" \
+    "$(image gitnexus)"
+finalize_artifacts gitnexus "${OUT_DIR}/gitnexus"
+assert_file "${OUT_DIR}/gitnexus/results/gitnexus/raw/gitnexus-provenance.json"
+assert_file "${OUT_DIR}/gitnexus/results/gitnexus/raw/ladybug-extension-staging.txt"
+assert_file "${OUT_DIR}/gitnexus/results/gitnexus/raw/gitnexus-index-files.txt"
+if [[ ! -s "${OUT_DIR}/gitnexus/results/gitnexus/raw/gitnexus-index-files.txt" ]]; then
+    fail "GitNexus index artifact list is empty"
+fi
+assert_file "${OUT_DIR}/gitnexus/results/gitnexus/normalized/gitnexus-summary.json"
+if grep -Eiq "Failed to download extension|extension\.ladybugdb\.com|VECTOR extension load failed|FTS extension load failed" "${OUT_DIR}/gitnexus/logs/gitnexus.log"; then
+    fail "GitNexus attempted external Ladybug extension fetch during functional smoke"
+fi
+if grep -Eiq "passing --skip-git|skip.git" "${OUT_DIR}/gitnexus/logs/gitnexus.log"; then
+    fail "GitNexus did not exercise git metadata path during functional smoke"
+fi
+docker run --rm --network none \
+    -v "${OUT_DIR}/gitnexus/job-report.json:/check.json:ro" \
+    "$(image base)" \
+    python3 -c "import json; data=json.load(open('/check.json')); assert data['tool'] == 'gitnexus', data; assert data['gitnexus_version'], data; assert data['source_ref'] and data['source_ref'] != 'unknown', data; assert 'source_commit' in data, data; assert data['source_repo'] == 'https://github.com/abhigyanpatwari/GitNexus', data"
+assert_contract gitnexus "${OUT_DIR}/gitnexus"
+docker run --rm --network none \
+    -v "${OUT_DIR}/gitnexus/results/gitnexus/normalized/gitnexus-summary.json:/check.json:ro" \
+    "$(image base)" \
+    python3 -c "import json; data=json.load(open('/check.json')); assert data['exit_code'] == 0, data; assert data['source_repo'] == 'https://github.com/abhigyanpatwari/GitNexus', data; assert data['source_ref'] and data['source_ref'] != 'unknown', data; assert 'source_commit' in data, data; assert data['cli_entrypoint'], data; assert data['source_present'] is True, data; assert data['dependencies_present'] is True, data; assert data['ladybug_extensions_available'] is True, data; assert data['ladybug_extensions_required'] == 1, data; assert data['ladybug_classification'] == 'extension_load_success', data; assert data['index_present'] is True, data"
+docker run --rm --network none \
+    -v "${OUT_DIR}/gitnexus/results/gitnexus/raw/gitnexus-provenance.json:/check.json:ro" \
+    "$(image base)" \
+    python3 -c "import json; data=json.load(open('/check.json')); assert data['source_repo'] == 'https://github.com/abhigyanpatwari/GitNexus', data; assert data['source_ref'] and data['source_ref'] != 'unknown', data; assert 'source_commit' in data, data; assert data['package_name'] == 'gitnexus', data; assert data['package_version'], data; assert data['cli_entrypoint_exists'] is True, data; assert data['source_present'] is True, data; assert data['dependencies_present'] is True, data"
 
 log "Eval runner executes file-content eval"
 mkdir -p "${OUT_DIR}/eval-runner"

@@ -4,15 +4,17 @@
 REGISTRY   ?= registry.internal/security-platform
 TAG        ?= latest
 BASE_IMAGE ?= $(REGISTRY)/spt-base:$(TAG)
-IMAGES     := base schema-validator result-normalizers c-cpp-analysis coverage-tools fuzzing replay-runner sbom osv-scanner secrets image-scanner re-lightweight yara intel-ingest rag-indexer diff-impact ghidra-base ghidra-exporter ghidra-mcp eval-runner gitnexus semgrep codeql corpus-tools symbolic
+IMAGES     := base schema-validator result-normalizers c-cpp-analysis coverage-tools harness-builder fuzzing protocol-fuzzing crash-triage replay-runner sbom osv-scanner secrets image-scanner re-lightweight yara intel-ingest rag-indexer diff-impact ghidra-base ghidra-exporter ghidra-mcp eval-runner gitnexus semgrep codeql corpus-tools symbolic
 TARGET_REGISTRY ?= $(REGISTRY)
 SOURCE_REGISTRY ?= $(REGISTRY)
 GHIDRA_VERSION ?= 12.0.4
 GHIDRA_DATE ?= 20260303
 GHIDRA_MCP_REPO ?= https://github.com/bethington/ghidra-mcp.git
 GHIDRA_MCP_REF ?= v5.5.0
+HONGGFUZZ_REPO ?= https://github.com/google/honggfuzz.git
+HONGGFUZZ_REF ?= master
 
-.PHONY: all build-all lint test test-offline verify-offline functional-smoke data-bundle-smoke bundle load-bundle image-list pull-bundle push push-registry clean $(IMAGES)
+.PHONY: all build-all lint test test-offline verify-offline functional-smoke smoke-honggfuzz data-bundle-smoke release-smoke release-restore bundle bundle-save load-bundle image-list pull-bundle push push-registry clean $(IMAGES)
 
 all: build-all
 
@@ -36,7 +38,16 @@ coverage-tools: base
 	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-coverage-tools:$(TAG) -f images/coverage-tools/Dockerfile .
 
 fuzzing: base
-	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-fuzzing:$(TAG) -f images/fuzzing/Dockerfile .
+	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) --build-arg HONGGFUZZ_REPO=$(HONGGFUZZ_REPO) --build-arg HONGGFUZZ_REF=$(HONGGFUZZ_REF) -t $(REGISTRY)/spt-fuzzing:$(TAG) -f images/fuzzing/Dockerfile .
+
+harness-builder: base
+	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-harness-builder:$(TAG) -f images/harness-builder/Dockerfile .
+
+protocol-fuzzing: base
+	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-protocol-fuzzing:$(TAG) -f images/protocol-fuzzing/Dockerfile .
+
+crash-triage: base
+	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-crash-triage:$(TAG) -f images/crash-triage/Dockerfile .
 
 replay-runner: base
 	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-replay-runner:$(TAG) -f images/replay-runner/Dockerfile .
@@ -135,21 +146,46 @@ test-offline verify-offline:
 	@echo "Offline smoke test passed."
 
 functional-smoke:
-	@bash examples/functional-smoke/run-functional-smoke.sh "$(REGISTRY)" "$(TAG)"
+	@bash examples/functional-smoke/run-functional-smoke.sh "$(REGISTRY)" "$(TAG)" "$(DATA_DIR)"
+
+smoke-honggfuzz:
+	@mkdir -p artifacts/honggfuzz-smoke
+	@echo "==> Experimental honggfuzz smoke (non-gating)"
+	@docker run --rm --network none \
+	    -e JOB_ID=experimental-honggfuzz \
+	    -e ARTIFACTS_DIR=/artifacts \
+	    -e FUZZ_ENGINE=honggfuzz \
+	    -e FUZZ_TARGET=/bin/true \
+	    -v "$$(pwd)/artifacts/honggfuzz-smoke:/artifacts" \
+	    $(REGISTRY)/spt-fuzzing:$(TAG) || echo "honggfuzz experimental smoke skipped/failed"
 
 data-bundle-smoke:
 	@bash scripts/data-bundle-smoke.sh "$(DATA_DIR)"
 
+release-smoke:
+	@TAG="$(TAG)" REGISTRY="$(REGISTRY)" DATA_DIR="$(DATA_DIR)" BUNDLE_DIR="$(BUNDLE_DIR)" DATA_BUNDLE_DIR="$(DATA_BUNDLE_DIR)" bash scripts/release-smoke-build.sh
+
+release-restore:
+	@TAG="$(TAG)" REGISTRY="$(REGISTRY)" BUNDLE_DIR="$(BUNDLE_DIR)" DATA_BUNDLE_DIR="$(DATA_BUNDLE_DIR)" RESTORE_DIR="$(RESTORE_DIR)" RESTORED_DATA_DIR="$(RESTORED_DATA_DIR)" SKIP_DOCKER_LOAD="$(SKIP_DOCKER_LOAD)" SKIP_VERIFY_OFFLINE="$(SKIP_VERIFY_OFFLINE)" SKIP_DATA_EXTRACT="$(SKIP_DATA_EXTRACT)" RUN_FUNCTIONAL="$(RUN_FUNCTIONAL)" bash scripts/restore-release-bundle.sh
+
 ## ── Bundle (offline / air-gap) ─────────────────────────────────────────────
 
 BUNDLE_DIR ?= offline-bundles/out
+RESTORE_DIR ?= artifacts/release-restore/$(TAG)
+RESTORED_DATA_DIR ?= $(RESTORE_DIR)/spt-data
+SKIP_DOCKER_LOAD ?= 0
+SKIP_VERIFY_OFFLINE ?= 0
+SKIP_DATA_EXTRACT ?= 0
+RUN_FUNCTIONAL ?= 0
 BUNDLE_TAR  = $(BUNDLE_DIR)/spt-bundle-$(TAG).tar
 BUNDLE_MANIFEST = $(BUNDLE_DIR)/spt-bundle-$(TAG).manifest.json
 DATA_DIR ?= data-bundles/sources
 DATA_BUNDLE_DIR ?= data-bundles/out
 DATA_BUNDLE_TAR = $(DATA_BUNDLE_DIR)/spt-data-bundle-$(TAG).tar
 
-bundle: build-all verify-offline
+bundle: build-all verify-offline bundle-save
+
+bundle-save:
 	@mkdir -p $(BUNDLE_DIR)
 	@echo "==> Saving all images to $(BUNDLE_TAR)"
 	@docker save \
@@ -193,6 +229,7 @@ data-fetch:
 
 data-bundle:
 	@mkdir -p $(DATA_BUNDLE_DIR)
+	@TAG="$(TAG)" DATA_DIR="$(DATA_DIR)" DATA_BUNDLE_DIR="$(DATA_BUNDLE_DIR)" bash scripts/write-data-bundle-manifest.sh
 	@echo "==> Creating data bundle $(DATA_BUNDLE_TAR)"
 	@tar -cf $(DATA_BUNDLE_TAR) -C data-bundles sources
 	@sha256sum $(DATA_BUNDLE_TAR) > $(DATA_BUNDLE_TAR).sha256

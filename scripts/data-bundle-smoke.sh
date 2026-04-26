@@ -31,6 +31,8 @@ require_file "${DATA_DIR}/mitre-attack/metadata.json"
 require_file "${DATA_DIR}/nvd/metadata.json"
 require_file "${DATA_DIR}/github-advisory-db/metadata.json"
 require_glob "${DATA_DIR}/osv/osv-scanner/*/all.zip"
+require_glob "${DATA_DIR}/ladybug-extensions/*/*/fts/libfts.lbug_extension"
+require_glob "${DATA_DIR}/ladybug-extensions/*/*/vector/libvector.lbug_extension"
 require_find "${DATA_DIR}/yara-rules" "*.yar"
 require_find "${DATA_DIR}/semgrep-rules" "*.yml"
 

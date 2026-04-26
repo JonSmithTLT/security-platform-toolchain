@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/JonSmithTLT/security-platform-toolchain/schemas/fuzz-campaign.schema.json",
+  "title": "FuzzCampaign",
+  "type": "object",
+  "required": ["schema_version", "engine", "target", "duration_seconds", "crash_count", "hang_count"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "engine": { "type": "string", "enum": ["afl", "libfuzzer", "honggfuzz"] },
+    "engine_status": { "type": "string", "enum": ["first-class", "experimental"] },
+    "target": { "type": "string", "minLength": 1 },
+    "target_sha256": { "type": "string" },
+    "harness": { "type": "string" },
+    "compiler": { "type": "string" },
+    "instrumentation": { "type": "string" },
+    "sanitizers": { "type": "array", "items": { "type": "string" } },
+    "duration_seconds": { "type": "number", "minimum": 0 },
+    "exec_count": { "type": "integer", "minimum": 0 },
+    "crash_count": { "type": "integer", "minimum": 0 },
+    "hang_count": { "type": "integer", "minimum": 0 },
+    "corpus_in": { "type": "string" },
+    "corpus_out": { "type": "string" },
+    "replay_commands": { "type": "array", "items": { "type": "string" } }
+  }
+}

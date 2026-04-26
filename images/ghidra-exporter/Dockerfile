@@ -15,8 +15,11 @@ RUN sed -i 's/\r$//' /usr/local/bin/run-ghidra-exporter \
 USER spt
 
 ENV GHIDRA_HOME=/opt/ghidra \
+    GHIDRA_EXPORT_MODE=headless-basic \
     GHIDRA_TARGET=/workspace \
     GHIDRA_PROJECT=/tmp/ghidra-project \
+    GHIDRA_PROJECT_NAME=spt-project \
+    GHIDRA_ANALYSIS_TIMEOUT=120 \
     ARTIFACTS_DIR=/artifacts
 
 CMD ["run-ghidra-exporter"]

@@ -19,6 +19,7 @@ FETCHERS=(
     fetch-nvd.sh
     fetch-github-advisory-db.sh
     fetch-osv-db.sh
+    fetch-ladybug-extensions.sh
     fetch-yara-rules.sh
     fetch-semgrep-rules.sh
     fetch-codeql-packs.sh

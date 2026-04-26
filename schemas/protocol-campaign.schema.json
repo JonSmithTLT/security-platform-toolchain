@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/JonSmithTLT/security-platform-toolchain/schemas/protocol-campaign.schema.json",
+  "title": "ProtocolCampaign",
+  "type": "object",
+  "required": ["schema_version", "protocol", "target_host", "target_port", "failure_count"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "protocol": { "type": "string", "minLength": 1 },
+    "target_host": { "type": "string", "minLength": 1 },
+    "target_port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+    "boofuzz_script": { "type": "string" },
+    "boofuzz_version": { "type": "string" },
+    "target_startup_command": { "type": "string" },
+    "duration_seconds": { "type": "number", "minimum": 0 },
+    "test_case_count": { "type": "integer", "minimum": 0 },
+    "failure_count": { "type": "integer", "minimum": 0 },
+    "failing_case_ids": { "type": "array", "items": { "type": "string" } },
+    "pcap_path": { "type": "string" },
+    "replay_command": { "type": "string" }
+  }
+}
