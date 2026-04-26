@@ -1,0 +1,24 @@
+{
+  "results": [
+    {
+      "package": {
+        "name": "demo-package",
+        "version": "1.0.0"
+      },
+      "vulnerabilities": [
+        {
+          "id": "GHSA-abcd-1234",
+          "summary": "Demo vulnerability",
+          "details": "Demo vulnerability details",
+          "aliases": ["CVE-2026-0001"],
+          "database_specific": {
+            "severity": "HIGH"
+          },
+          "references": [
+            {"url": "https://example.test/advisory"}
+          ]
+        }
+      ]
+    }
+  ]
+}

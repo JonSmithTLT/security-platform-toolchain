@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/JonSmithTLT/security-platform-toolchain/schemas/platform-handoff-bundle.schema.json",
+  "title": "PlatformHandoffBundle",
+  "description": "Versioned importer-facing bundle contract that maps normalized findings, evidence, and manifests.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "contract_type",
+    "contract_version",
+    "generated_at",
+    "tag",
+    "registry",
+    "artifact_manifest",
+    "sections",
+    "missing_optional"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "contract_type": {
+      "type": "string",
+      "const": "platform-handoff-bundle"
+    },
+    "contract_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tag": {
+      "type": "string",
+      "minLength": 1
+    },
+    "registry": {
+      "type": "string",
+      "minLength": 1
+    },
+    "artifact_manifest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sections": {
+      "type": "object",
+      "required": [
+        "normalized_findings",
+        "candidate_correlations",
+        "release_evidence",
+        "sboms",
+        "scans",
+        "manifests"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "normalized_findings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "candidate_correlations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "release_evidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "sboms": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "scans": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "manifests": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "missing_optional": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

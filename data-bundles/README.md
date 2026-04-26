@@ -38,6 +38,7 @@ Fetch or stage datasets under `data-bundles/sources/`, then bundle them:
 ```bash
 make data-fetch TAG=2026-04-25
 make data-bundle TAG=2026-04-25
+make data-bundle-sanitized TAG=2026-04-25
 make data-bundle-smoke TAG=2026-04-25
 make functional-smoke TAG=2026-04-25 DATA_DIR=data-bundles/sources
 ```
@@ -46,6 +47,34 @@ make functional-smoke TAG=2026-04-25 DATA_DIR=data-bundles/sources
 `scripts/export-data-bundle.sh` also writes a source manifest, source
 checksums, full tar checksum, and split part checksums under
 `data-bundles/out/`.
+
+To publish a smaller update against a previous full bundle, keep that bundle's
+`spt-data-bundle-<BASE>.source-checksums.sha256` and run:
+
+```bash
+make data-delta-bundle TAG=2026-04-26 \
+  BASE_DATA_SOURCE_SUMS=data-bundles/out/spt-data-bundle-2026-04-25.source-checksums.sha256
+```
+
+The delta tar contains added/modified files under `sources/` plus a
+`delta-manifest.json` listing added, modified, and removed paths.
+
+To build a sanitized advisory/intel variant for AV/DLP-constrained environments:
+
+```bash
+make data-bundle-sanitized TAG=2026-04-26
+```
+
+This writes:
+
+- `data-bundles/out/spt-data-sanitized-bundle-<TAG>.tar`
+- `data-bundles/out/spt-data-sanitized-bundle-<TAG>.manifest.json`
+- `data-bundles/out/spt-data-sanitized-bundle-<TAG>.source-checksums.sha256`
+- `data-bundles/out/spt-data-sanitized-bundle-<TAG>.sanitization-report.json`
+
+The sanitizer currently redacts advisory-heavy text fields from GitHub Advisory
+DB, NVD, OSV, and vendor advisories while preserving structural metadata for
+indexing and triage.
 
 ## Air-Gapped Flow
 
@@ -124,6 +153,19 @@ sources can be overridden through environment variables.
 | `EPSS_URL` | Override EPSS URL |
 | `NVD_FEED_BASE_URL` | Override NVD feed base URL |
 | `GHSA_REPO_URL` | Override GitHub Advisory Database repo URL |
+
+## CVE Cross-Reference Index
+
+Build an offline SQLite index after fetching data sources:
+
+```bash
+make cve-index DATA_DIR=data-bundles/sources
+```
+
+The index is written to `data-bundles/out/spt-cve-index.sqlite` by default.
+It joins NVD CVSS/CWE metadata, EPSS scores, CISA KEV status, OSV aliases and
+affected package records, and optional GitHub Advisory Database records. The
+index is an enrichment/correlation aid, not the canonical finding model.
 
 ## OSV Offline Cache
 

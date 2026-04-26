@@ -6,8 +6,9 @@ cd "${ROOT_DIR}"
 
 TAG="${TAG:-latest}"
 DATA_BUNDLE_DIR="${DATA_BUNDLE_DIR:-data-bundles/out}"
-TAR="${DATA_BUNDLE_DIR}/spt-data-bundle-${TAG}.tar"
-PART_SUMS="${DATA_BUNDLE_DIR}/spt-data-bundle-${TAG}.parts.sha256"
+DATA_BUNDLE_NAME="${DATA_BUNDLE_NAME:-spt-data-bundle}"
+TAR="${DATA_BUNDLE_DIR}/${DATA_BUNDLE_NAME}-${TAG}.tar"
+PART_SUMS="${DATA_BUNDLE_DIR}/${DATA_BUNDLE_NAME}-${TAG}.parts.sha256"
 TAR_SUM="${TAR}.sha256"
 
 if [[ -f "${PART_SUMS}" ]]; then

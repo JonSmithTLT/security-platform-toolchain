@@ -19,6 +19,8 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 SCHEMA_BY_NAME = {
     "job-report.json": "job-report.schema.json",
     "manifest.json": "artifact-manifest.schema.json",
+    "platform-handoff-contract.json": "platform-handoff-bundle.schema.json",
+    "candidate-correlations.json": "candidate-correlations.schema.json",
     "tool-result.json": "tool-result.schema.json",
     "harness-manifest.json": "harness-manifest.schema.json",
     "fuzz-campaign.json": "fuzz-campaign.schema.json",
@@ -60,7 +62,7 @@ def candidate_files(target: Path) -> list[Path]:
     if target.is_file():
         return [target]
     files: list[Path] = []
-    for name in ("job-report.json", "manifest.json"):
+    for name in ("job-report.json", "manifest.json", "platform-handoff-contract.json"):
         path = target / name
         if path.exists():
             files.append(path)

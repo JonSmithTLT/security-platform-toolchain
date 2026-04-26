@@ -1,0 +1,10 @@
+[
+  {
+    "RuleID": "generic-api-key",
+    "Description": "Generic API Key",
+    "File": "settings.py",
+    "StartLine": 3,
+    "EndLine": 3,
+    "Secret": "example-secret"
+  }
+]

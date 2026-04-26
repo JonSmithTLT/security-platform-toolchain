@@ -46,6 +46,7 @@ security-platform-toolchain/
 │   ├── intel-ingest/           # offline intel ingestion
 │   ├── rag-indexer/            # derived RAG indexes
 │   ├── diff-impact/            # diff impact analysis
+│   ├── dependency-review/       # lockfile/SBOM review against offline CVE index
 │   ├── ghidra-base/            # shared Ghidra runtime
 │   ├── ghidra-exporter/        # controlled Ghidra exports
 │   ├── ghidra-mcp/             # analyst/MCP Ghidra workflows
@@ -171,6 +172,11 @@ make functional-smoke \
   REGISTRY=registry.internal/security-platform \
   TAG=1.2.3 \
   DATA_DIR=data-bundles/sources
+
+make offline-egress-audit \
+  REGISTRY=registry.internal/security-platform \
+  TAG=1.2.3 \
+  DATA_DIR=data-bundles/sources
 ```
 
 This creates tiny local fixtures under `artifacts/functional-smoke`, then runs
@@ -190,6 +196,7 @@ Smoke test levels:
 | `make verify-offline` | Image-only startup check. Every image starts with Docker networking disabled. |
 | `make functional-smoke` | Fixture and mounted-data check. Tiny local fixtures prove implemented tools work offline; GitNexus also requires staged Ladybug extensions from `DATA_DIR`. |
 | `make data-bundle-smoke` | Full-data discovery check. Mounted/staged data bundle contains expected OSV, Ladybug, YARA, Semgrep, CodeQL, and intel datasets. |
+| `make offline-egress-audit` | Optional observable-egress audit. Re-runs offline functional smoke and scans generated logs for outbound attempt indicators, then writes audit evidence under `artifacts/offline-egress-audit/<TAG>/`. |
 
 ### Create an offline data bundle
 
@@ -200,6 +207,12 @@ then bundle it separately from the Docker images:
 make data-fetch TAG=2026-04-25
 make data-bundle TAG=2026-04-25
 make data-verify TAG=2026-04-25
+make platform-handoff-bundle TAG=2026-04-25
+make cve-index TAG=2026-04-25 DATA_DIR=data-bundles/sources
+make cve-index-smoke TAG=2026-04-25
+make tool-catalog TAG=2026-04-25
+make candidate-correlations
+docker-compose run --rm dependency-review
 ```
 
 Use this for OSV databases, CWE, CAPEC, MITRE ATT&CK, CVE/NVD, CISA KEV,
@@ -223,6 +236,27 @@ choose to publish explicit full/sanitized variants:
 |---------|-------------|
 | `intel-data-full-<TAG>.tar.zst` | Upstream advisory/intel content as-is. Maximum coverage; may trigger AV/DLP. |
 | `intel-data-sanitized-<TAG>.tar.zst` | Excludes or redacts PoC/exploit-heavy records. Reduced coverage. |
+
+`make platform-handoff-bundle` creates a versioned importer-facing contract and
+tarball under `artifacts/platform-handoff/`, packaging normalized findings,
+candidate correlations (when present), release evidence, and bundle manifests
+into one stable handoff layout.
+
+`make cve-index-smoke` exercises the offline CVE index with a fixture lockfile
+and emits `artifacts/cve-index-smoke/enrichment-candidate.json` containing CVE,
+aliases, CVSS, EPSS, KEV, affected ranges, and source records.
+
+`make tool-catalog` generates a descriptive MCP/tool catalog under
+`artifacts/tool-catalog/` from wrapper defaults, mount-path hints, schemas, and
+MCP example metadata.
+
+`make candidate-correlations` derives soft cross-tool correlation suggestions
+and emits per-tool `candidate-correlations.json` artifacts under
+`artifacts/results/<tool>/normalized/`.
+
+`spt-dependency-review` consumes a lockfile/SBOM and an offline CVE index
+(`CVE_INDEX_DB`) and emits normalized findings plus enrichment candidates under
+`artifacts/results/dependency-review/`.
 
 Current release notes:
 

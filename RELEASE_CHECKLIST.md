@@ -33,7 +33,10 @@ The automated release driver can run this checklist end to end:
 ```bash
 make doctor REGISTRY=$REGISTRY TAG=$TAG DATA_DIR=$DATA_DIR
 make release-smoke REGISTRY=$REGISTRY TAG=$TAG DATA_DIR=$DATA_DIR
+make container-structure-test REGISTRY=$REGISTRY TAG=$TAG
 make release-evidence REGISTRY=$REGISTRY TAG=$TAG DATA_DIR=$DATA_DIR
+make platform-handoff-bundle REGISTRY=$REGISTRY TAG=$TAG
+make offline-egress-audit REGISTRY=$REGISTRY TAG=$TAG DATA_DIR=$DATA_DIR
 make release-policy-check REGISTRY=$REGISTRY TAG=$TAG
 ```
 
@@ -52,9 +55,16 @@ iteration.
 `make release-evidence` collects the self-scan dossier under
 `artifacts/release-evidence/$TAG/`: image SBOMs, Grype scans, repo secret/OSV
 scans, tool inventories, image sizes, checksums, and an artifact manifest.
+`make container-structure-test` validates built image labels, entrypoints,
+non-root users, and expected environment shape before evidence collection.
+`make platform-handoff-bundle` packages normalized findings, release evidence,
+and bundle manifests into a versioned importer-facing contract under
+`artifacts/platform-handoff/$TAG/`.
+`make offline-egress-audit` re-runs offline functional smoke and scans emitted
+logs for observable outbound-attempt indicators, writing JSON and markdown
+evidence under `artifacts/offline-egress-audit/$TAG/`.
 `make release-policy-check` validates required evidence files, failed evidence
-events, and image-size ceilings. Override the size gate with
-`MAX_IMAGE_MIB=<n>`.
+events, and image-size ceilings. Override the size gate with `MAX_IMAGE_MIB=<n>`.
 
 ```text
 offline-bundles/out/spt-release-$TAG.upload-assets.txt

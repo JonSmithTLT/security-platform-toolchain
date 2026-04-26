@@ -1,0 +1,24 @@
+{
+  "tool": "semgrep",
+  "summary": {
+    "total": 1,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "findings": [
+    {
+      "title": "subprocess call with shell=True",
+      "severity": "high",
+      "rule_id": "python.lang.security.audit.subprocess-shell-true",
+      "location": {
+        "file": "app.py",
+        "line_start": 7,
+        "line_end": 7,
+        "col_start": 5
+      },
+      "message": "subprocess call with shell=True"
+    }
+  ]
+}

@@ -14,6 +14,7 @@ from typing import Any, Callable
 
 
 SEVERITIES = {"critical", "high", "medium", "low", "info"}
+SARIF_SCHEMA = "https://json.schemastore.org/sarif-2.1.0.json"
 
 
 def load_json(path: Path) -> Any:
@@ -64,6 +65,15 @@ def summarize(findings: list[dict[str, Any]]) -> dict[str, int]:
     return summary
 
 
+def sarif_level(value: Any) -> str:
+    sev = severity(value)
+    if sev in {"critical", "high"}:
+        return "error"
+    if sev == "medium":
+        return "warning"
+    return "note"
+
+
 def tool_result(tool: str, target: str, findings: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "schema_version": "1.0.0",
@@ -71,6 +81,82 @@ def tool_result(tool: str, target: str, findings: list[dict[str, Any]]) -> dict[
         "target": target,
         "summary": summarize(findings),
         "findings": findings,
+    }
+
+
+def tool_result_to_sarif(result: dict[str, Any]) -> dict[str, Any]:
+    tool = str(result.get("tool") or "spt")
+    rules: dict[str, dict[str, Any]] = {}
+    sarif_results = []
+
+    for finding in result.get("findings", []):
+        if not isinstance(finding, dict):
+            continue
+        rule_id = str(finding.get("rule_id") or "spt-finding")
+        title = str(finding.get("title") or rule_id)
+        rules.setdefault(
+            rule_id,
+            {
+                "id": rule_id,
+                "shortDescription": {"text": title},
+                "defaultConfiguration": {"level": sarif_level(finding.get("severity"))},
+                "properties": {"sptSeverity": severity(finding.get("severity"))},
+            },
+        )
+
+        sarif_result: dict[str, Any] = {
+            "ruleId": rule_id,
+            "level": sarif_level(finding.get("severity")),
+            "message": {"text": str(finding.get("message") or title)},
+            "properties": {
+                "sptFindingId": finding.get("id"),
+                "sptSeverity": severity(finding.get("severity")),
+            },
+        }
+        if finding.get("cve"):
+            sarif_result["properties"]["cve"] = finding.get("cve")
+        if finding.get("references"):
+            sarif_result["properties"]["references"] = finding.get("references")
+
+        loc = finding.get("location") or {}
+        file_path = loc.get("file") if isinstance(loc, dict) else None
+        if file_path:
+            region: dict[str, Any] = {}
+            if loc.get("line_start"):
+                region["startLine"] = loc["line_start"]
+            if loc.get("line_end"):
+                region["endLine"] = loc["line_end"]
+            if loc.get("col_start"):
+                region["startColumn"] = loc["col_start"]
+            sarif_result["locations"] = [
+                {
+                    "physicalLocation": {
+                        "artifactLocation": {"uri": str(file_path)},
+                        "region": region,
+                    }
+                }
+            ]
+
+        sarif_results.append(sarif_result)
+
+    return {
+        "version": "2.1.0",
+        "$schema": SARIF_SCHEMA,
+        "runs": [
+            {
+                "tool": {
+                    "driver": {
+                        "name": tool,
+                        "rules": sorted(rules.values(), key=lambda item: item["id"]),
+                    }
+                },
+                "results": sarif_results,
+                "properties": {
+                    "sptSchemaVersion": result.get("schema_version"),
+                    "sptTarget": result.get("target"),
+                },
+            }
+        ],
     }
 
 
@@ -362,6 +448,7 @@ def main() -> int:
     parser.add_argument("--output", default="")
     parser.add_argument("--summary-out", required=True)
     parser.add_argument("--aggregate-out", required=True)
+    parser.add_argument("--sarif-out", default="")
     args = parser.parse_args()
 
     input_path = Path(args.input)
@@ -407,6 +494,10 @@ def main() -> int:
     aggregate_out.parent.mkdir(parents=True, exist_ok=True)
     summary_out.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     aggregate_out.write_text(json.dumps(aggregate, indent=2) + "\n", encoding="utf-8")
+    if args.sarif_out:
+        sarif_out = Path(args.sarif_out)
+        sarif_out.parent.mkdir(parents=True, exist_ok=True)
+        sarif_out.write_text(json.dumps(tool_result_to_sarif(aggregate), indent=2) + "\n", encoding="utf-8")
 
     print(
         f"normalized={len(normalized)} findings={len(aggregate_findings)} errors={len(errors)}",

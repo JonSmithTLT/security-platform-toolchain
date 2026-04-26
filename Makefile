@@ -3,7 +3,7 @@
 REGISTRY   ?= registry.internal/security-platform
 TAG        ?= latest
 BASE_IMAGE ?= $(REGISTRY)/spt-base:$(TAG)
-IMAGES     := base schema-validator result-normalizers c-cpp-analysis coverage-tools harness-builder fuzzing protocol-fuzzing crash-triage replay-runner sbom osv-scanner secrets image-scanner re-lightweight yara intel-ingest rag-indexer diff-impact ghidra-base ghidra-exporter ghidra-mcp eval-runner gitnexus semgrep codeql corpus-tools symbolic
+IMAGES     := base schema-validator result-normalizers c-cpp-analysis coverage-tools harness-builder fuzzing protocol-fuzzing crash-triage replay-runner sbom osv-scanner secrets image-scanner re-lightweight yara intel-ingest rag-indexer diff-impact dependency-review ghidra-base ghidra-exporter ghidra-mcp eval-runner gitnexus semgrep codeql corpus-tools symbolic
 TARGET_REGISTRY ?= $(REGISTRY)
 SOURCE_REGISTRY ?= $(REGISTRY)
 GHIDRA_VERSION ?= 12.0.4
@@ -47,7 +47,14 @@ BUNDLE_TAR          = $(BUNDLE_DIR)/spt-bundle-$(TAG).tar
 BUNDLE_MANIFEST     = $(BUNDLE_DIR)/spt-bundle-$(TAG).manifest.json
 DATA_DIR            ?= data-bundles/sources
 DATA_BUNDLE_DIR     ?= data-bundles/out
-DATA_BUNDLE_TAR     = $(DATA_BUNDLE_DIR)/spt-data-bundle-$(TAG).tar
+DATA_BUNDLE_NAME    ?= spt-data-bundle
+DATA_BUNDLE_TAR     = $(DATA_BUNDLE_DIR)/$(DATA_BUNDLE_NAME)-$(TAG).tar
+DATA_SANITIZED_BUNDLE_NAME ?= spt-data-sanitized-bundle
+DATA_SANITIZED_STAGE ?= $(DATA_BUNDLE_DIR)/sanitized-$(TAG)
+DATA_SANITIZED_DIR   ?= $(DATA_SANITIZED_STAGE)/sources
+DATA_SANITIZED_TAR   = $(DATA_BUNDLE_DIR)/$(DATA_SANITIZED_BUNDLE_NAME)-$(TAG).tar
+DATA_DELTA_TAR      = $(DATA_BUNDLE_DIR)/spt-data-delta-$(TAG).tar
+BASE_DATA_SOURCE_SUMS ?=
 DATA_MANIFEST_CHECKSUM_MODE ?= dataset
 RELEASE_LEDGER      ?= artifacts/release-ledger/$(TAG)/release-stages.jsonl
 SPLIT_SIZE          ?= 1900M
@@ -59,16 +66,27 @@ RESET_NATIVE_WORKTREE ?= 0
 BUILD_JOBS          ?= 4
 MAX_IMAGE_MIB       ?= 4096
 ALLOW_FAILED_EVIDENCE ?= 0
+CVE_INDEX_OUT       ?= data-bundles/out/spt-cve-index.sqlite
+CVE_INDEX_LIMIT     ?=
+CVE_INDEX_SMOKE_OUT ?= artifacts/cve-index-smoke
+TOOL_CATALOG_OUT ?= artifacts/tool-catalog
+PLATFORM_HANDOFF_DIR ?= artifacts/platform-handoff
+PLATFORM_HANDOFF_TAR ?= $(PLATFORM_HANDOFF_DIR)/spt-platform-handoff-$(TAG).tar
+ALLOW_EGRESS_AUDIT_FINDINGS ?= 0
 
 .PHONY: all build-all build-report help \
     doctor native-worktree native-release-smoke \
-    lint test test-offline verify-offline \
-    functional-smoke smoke-honggfuzz data-bundle-smoke gitnexus-ladybug-smoke gitnexus-git-smoke \
-    release-smoke release-restore release-evidence release-policy-check scan-platform \
+    lint test test-normalizers test-offline verify-offline \
+	functional-smoke smoke-honggfuzz data-bundle-smoke gitnexus-ladybug-smoke gitnexus-git-smoke offline-egress-audit \
+    release-smoke release-restore release-evidence release-policy-check scan-platform container-structure-test \
     python-wheelhouse-fetch python-wheelhouse-image python-wheelhouse-smoke python-wheelhouse-verify \
-    data-fetch data-fetch-quick data-fetch-full data-bundle data-verify data-check-freshness \
+	data-fetch data-fetch-quick data-fetch-full data-bundle data-bundle-sanitized data-delta-bundle data-verify data-check-freshness \
+	cve-index-smoke \
+	tool-catalog \
+	candidate-correlations \
+	platform-handoff-bundle \
     bundle bundle-save load-bundle image-list pull-bundle push push-registry \
-    image-sizes tool-versions-declared tool-versions-installed tool-drift-check backlog-status \
+    image-sizes tool-versions-declared tool-versions-installed tool-drift-check backlog-status license-inventory cve-index \
     clean clean-bundles clean-artifacts clean-data-sources clean-all-generated \
     $(IMAGES)
 
@@ -158,6 +176,9 @@ rag-indexer: base ## Build spt-rag-indexer
 diff-impact: base ## Build spt-diff-impact
 	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-diff-impact:$(TAG) -f images/diff-impact/Dockerfile .
 
+dependency-review: base ## Build spt-dependency-review
+	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-dependency-review:$(TAG) -f images/dependency-review/Dockerfile .
+
 ghidra-base: base ## Build spt-ghidra-base
 	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(BASE_IMAGE) --build-arg GHIDRA_VERSION=$(GHIDRA_VERSION) --build-arg GHIDRA_DATE=$(GHIDRA_DATE) -t $(REGISTRY)/spt-ghidra-base:$(TAG) -f images/ghidra-base/Dockerfile .
 
@@ -215,6 +236,9 @@ test: ## Smoke-test all images and run unit tests
 	@python3 -m pytest common/ -v
 	@echo "Tests passed."
 
+test-normalizers: ## Run golden fixture contract tests for result normalizers
+	@python3 scripts/test-normalizer-fixtures.py
+
 test-offline verify-offline: ## Smoke-test all images with --network none
 	@echo "==> Smoke-testing images with Docker network disabled"
 	@for img in $(IMAGES); do \
@@ -226,6 +250,16 @@ test-offline verify-offline: ## Smoke-test all images with --network none
 
 functional-smoke: ## Run full functional smoke test suite against all images
 	@bash examples/functional-smoke/run-functional-smoke.sh "$(REGISTRY)" "$(TAG)" "$(DATA_DIR)"
+
+offline-egress-audit: ## Audit offline smoke logs for observable outbound network attempts
+	@python3 scripts/offline-egress-audit.py \
+	    --registry "$(REGISTRY)" \
+	    --tag "$(TAG)" \
+	    --data-dir "$(DATA_DIR)" \
+	    --logs-root "artifacts/functional-smoke" \
+	    --out-dir "artifacts/offline-egress-audit/$(TAG)" \
+	    --run-functional-smoke \
+	    $(if $(filter 1,$(ALLOW_EGRESS_AUDIT_FINDINGS)),--allow-findings,)
 
 gitnexus-ladybug-smoke: ## Prove offline LadybugDB extension loading under --network none
 	@bash examples/gitnexus-ladybug-smoke/run-gitnexus-ladybug-smoke.sh "$(REGISTRY)" "$(TAG)" "$(DATA_DIR)"
@@ -306,6 +340,34 @@ tool-drift-check: ## Fail if installed tool probes fail or declared versions dri
 backlog-status: ## Compare FUTURE_WORK Tier 1 checkboxes with repo evidence
 	@python3 scripts/backlog-status.py
 
+license-inventory: ## Generate lightweight tool, wheel, and dataset license inventory
+	@python3 scripts/license-inventory.py --data-dir "$(DATA_DIR)" --out-dir "artifacts/license-inventory"
+
+container-structure-test: ## Validate built image structure via docker inspect
+	@python3 scripts/container-structure-test.py \
+	    --registry "$(REGISTRY)" \
+	    --tag "$(TAG)" \
+	    --images "$(IMAGES)" \
+	    --out-dir "artifacts/container-structure"
+
+cve-index: ## Build offline CVE cross-reference SQLite index
+	@python3 scripts/build-cve-index.py --data-dir "$(DATA_DIR)" --out "$(CVE_INDEX_OUT)" $(if $(CVE_INDEX_LIMIT),--max-records-per-source "$(CVE_INDEX_LIMIT)",)
+
+cve-index-smoke: ## Query fixture lockfile against offline CVE index and emit enrichment candidates
+	@python3 scripts/cve-index-smoke.py \
+	    --index "$(CVE_INDEX_OUT)" \
+	    --fixture "examples/cve-index-smoke/requirements.txt" \
+	    --out-dir "$(CVE_INDEX_SMOKE_OUT)"
+
+tool-catalog: ## Generate MCP/tool catalog from wrappers, image metadata, and examples
+	@python3 scripts/generate-tool-catalog.py \
+	    --registry "$(REGISTRY)" \
+	    --tag "$(TAG)" \
+	    --out-dir "$(TOOL_CATALOG_OUT)"
+
+candidate-correlations: ## Generate soft candidate-correlations.json artifacts from normalized findings
+	@python3 scripts/generate-candidate-correlations.py --results-dir "artifacts/results" --out-dir "artifacts/results"
+
 ## ── Release ─────────────────────────────────────────────────────────────────
 
 release-smoke: ## Run full release smoke (build + verify + bundle)
@@ -325,6 +387,17 @@ release-policy-check: ## Gate release evidence against size and required-artifac
 	    --images "$(IMAGES)" \
 	    --max-image-mib "$(MAX_IMAGE_MIB)" \
 	    $(if $(filter 1,$(ALLOW_FAILED_EVIDENCE)),--allow-failed-evidence,)
+
+platform-handoff-bundle: release-evidence ## Package importer-friendly handoff contract + bundle
+	@python3 scripts/build-platform-handoff-bundle.py \
+	    --tag "$(TAG)" \
+	    --registry "$(REGISTRY)" \
+	    --results-dir "artifacts/results" \
+	    --release-evidence-dir "artifacts/release-evidence/$(TAG)" \
+	    --offline-bundle-dir "$(BUNDLE_DIR)" \
+	    --data-bundle-dir "$(DATA_BUNDLE_DIR)" \
+	    --out-dir "$(PLATFORM_HANDOFF_DIR)/$(TAG)" \
+	    --tar-out "$(PLATFORM_HANDOFF_TAR)"
 
 scan-platform: release-evidence ## Alias for platform self-scanning release evidence
 
@@ -384,11 +457,35 @@ data-fetch-full: ## Fetch all data sources, including the large GitHub Advisory 
 
 data-bundle: ## Create a data bundle tar from sources
 	@mkdir -p $(DATA_BUNDLE_DIR)
-	@TAG="$(TAG)" DATA_DIR="$(DATA_DIR)" DATA_BUNDLE_DIR="$(DATA_BUNDLE_DIR)" DATA_MANIFEST_CHECKSUM_MODE="$(DATA_MANIFEST_CHECKSUM_MODE)" bash scripts/write-data-bundle-manifest.sh
+	@TAG="$(TAG)" DATA_DIR="$(DATA_DIR)" DATA_BUNDLE_DIR="$(DATA_BUNDLE_DIR)" DATA_BUNDLE_NAME="$(DATA_BUNDLE_NAME)" DATA_MANIFEST_CHECKSUM_MODE="$(DATA_MANIFEST_CHECKSUM_MODE)" bash scripts/write-data-bundle-manifest.sh
 	@echo "==> Creating data bundle $(DATA_BUNDLE_TAR)"
 	@tar -cf $(DATA_BUNDLE_TAR) -C data-bundles sources
 	@sha256sum $(DATA_BUNDLE_TAR) > $(DATA_BUNDLE_TAR).sha256
 	@cat $(DATA_BUNDLE_TAR).sha256
+
+data-bundle-sanitized: ## Create sanitized advisory/intel data bundle variant
+	@mkdir -p $(DATA_BUNDLE_DIR)
+	@python3 scripts/create-sanitized-data-view.py \
+	    --input-dir "$(DATA_DIR)" \
+	    --output-dir "$(DATA_SANITIZED_DIR)" \
+	    --report-out "$(DATA_BUNDLE_DIR)/$(DATA_SANITIZED_BUNDLE_NAME)-$(TAG).sanitization-report.json"
+	@TAG="$(TAG)" DATA_DIR="$(DATA_SANITIZED_DIR)" DATA_BUNDLE_DIR="$(DATA_BUNDLE_DIR)" DATA_BUNDLE_NAME="$(DATA_SANITIZED_BUNDLE_NAME)" SANITIZED=true DATA_MANIFEST_CHECKSUM_MODE="$(DATA_MANIFEST_CHECKSUM_MODE)" bash scripts/write-data-bundle-manifest.sh
+	@echo "==> Creating sanitized data bundle $(DATA_SANITIZED_TAR)"
+	@tar -cf $(DATA_SANITIZED_TAR) -C $(DATA_SANITIZED_STAGE) sources
+	@sha256sum $(DATA_SANITIZED_TAR) > $(DATA_SANITIZED_TAR).sha256
+	@cat $(DATA_SANITIZED_TAR).sha256
+
+data-delta-bundle: ## Create a data delta bundle from prior source checksums
+	@test -n "$(BASE_DATA_SOURCE_SUMS)" || { echo "BASE_DATA_SOURCE_SUMS is required"; exit 2; }
+	@mkdir -p $(DATA_BUNDLE_DIR)
+	@python3 scripts/create-data-delta-bundle.py \
+	    --data-dir "$(DATA_DIR)" \
+	    --base-source-checksums "$(BASE_DATA_SOURCE_SUMS)" \
+	    --out "$(DATA_DELTA_TAR)" \
+	    --manifest-out "$(DATA_BUNDLE_DIR)/spt-data-delta-$(TAG).manifest.json" \
+	    --tag "$(TAG)"
+	@sha256sum $(DATA_DELTA_TAR) > $(DATA_DELTA_TAR).sha256
+	@cat $(DATA_DELTA_TAR).sha256
 
 data-verify: ## Verify data bundle checksum
 	@echo "==> Verifying data bundle checksum"

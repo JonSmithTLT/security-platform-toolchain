@@ -20,6 +20,7 @@ USER spt
 ENV NORMALIZER_INPUT=/artifacts/results \
     NORMALIZER_FORMAT=auto \
     NORMALIZER_OUTPUT="" \
+    NORMALIZER_SARIF_OUTPUT="" \
     ARTIFACTS_DIR=/artifacts
 
 CMD ["run-result-normalizers"]

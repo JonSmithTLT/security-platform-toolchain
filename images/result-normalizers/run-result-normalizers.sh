@@ -9,6 +9,7 @@ source /usr/local/lib/spt/logging.sh
 : "${NORMALIZER_INPUT:=/artifacts/results}"
 : "${NORMALIZER_FORMAT:=auto}"
 : "${NORMALIZER_OUTPUT:=}"
+: "${NORMALIZER_SARIF_OUTPUT:=}"
 : "${ARTIFACTS_DIR:=/artifacts}"
 
 RESULTS_DIR="${ARTIFACTS_DIR}/results/result-normalizers"
@@ -30,6 +31,11 @@ ARGS=(
 )
 if [[ -n "${NORMALIZER_OUTPUT}" ]]; then
     ARGS+=(--output "${NORMALIZER_OUTPUT}")
+fi
+if [[ -n "${NORMALIZER_SARIF_OUTPUT}" ]]; then
+    ARGS+=(--sarif-out "${NORMALIZER_SARIF_OUTPUT}")
+else
+    ARGS+=(--sarif-out "${RESULTS_DIR}/normalized/result-normalizers.sarif")
 fi
 
 set +e

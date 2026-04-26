@@ -22,6 +22,7 @@ Converts common raw tool output into the shared SPT `tool-result.schema.json`.
 | `NORMALIZER_INPUT` | `/artifacts/results` | Raw result file or results directory |
 | `NORMALIZER_FORMAT` | `auto` | `auto`, `semgrep`, `sarif`, `codeql`, `gitleaks`, `trufflehog`, or `osv` |
 | `NORMALIZER_OUTPUT` | empty | Explicit output path when normalizing one file |
+| `NORMALIZER_SARIF_OUTPUT` | empty | Explicit SARIF projection output path; defaults to `results/result-normalizers/normalized/result-normalizers.sarif` |
 | `ARTIFACTS_DIR` | `/artifacts` | Output artifact directory |
 
 ## Outputs
@@ -32,7 +33,11 @@ tool's raw directory:
 ```text
 results/<tool>/tool-result.json
 results/result-normalizers/raw/normalization-summary.json
+results/result-normalizers/normalized/result-normalizers.sarif
 results/result-normalizers/tool-result.json
 logs/result-normalizers.log
 job-report.json
 ```
+
+SARIF output is a projection from SPT `tool-result.json`; it is meant for
+handoff to SARIF-native consumers and is not the internal authority model.

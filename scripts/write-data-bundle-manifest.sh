@@ -4,9 +4,10 @@ set -euo pipefail
 TAG="${TAG:-latest}"
 DATA_DIR="${DATA_DIR:-data-bundles/sources}"
 DATA_BUNDLE_DIR="${DATA_BUNDLE_DIR:-data-bundles/out}"
+DATA_BUNDLE_NAME="${DATA_BUNDLE_NAME:-spt-data-bundle}"
 SANITIZED="${SANITIZED:-false}"
-MANIFEST="${DATA_BUNDLE_DIR}/spt-data-bundle-${TAG}.manifest.json"
-SOURCE_SUMS="${DATA_BUNDLE_DIR}/spt-data-bundle-${TAG}.source-checksums.sha256"
+MANIFEST="${DATA_BUNDLE_DIR}/${DATA_BUNDLE_NAME}-${TAG}.manifest.json"
+SOURCE_SUMS="${DATA_BUNDLE_DIR}/${DATA_BUNDLE_NAME}-${TAG}.source-checksums.sha256"
 DATA_MANIFEST_CHECKSUM_MODE="${DATA_MANIFEST_CHECKSUM_MODE:-full}"
 
 mkdir -p "${DATA_BUNDLE_DIR}"

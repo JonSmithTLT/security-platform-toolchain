@@ -148,6 +148,26 @@ services:
       args:
         BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
 
+  dependency-review:
+    <<: *common
+    image: ${REGISTRY:-registry.internal/security-platform}/spt-dependency-review:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: images/dependency-review/Dockerfile
+      args:
+        BASE_IMAGE: ${REGISTRY:-registry.internal/security-platform}/spt-base:${TAG:-latest}
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - JOB_ID=${JOB_ID:-local}
+      - ARTIFACTS_DIR=/artifacts
+      - TARGET_REPO=/workspace
+      - DEPENDENCY_INPUT=${DEPENDENCY_INPUT:-/workspace/requirements.txt}
+      - CVE_INDEX_DB=${CVE_INDEX_DB:-/data/spt-cve-index.sqlite}
+    volumes:
+      - ${WORKSPACE:-.}:/workspace:ro
+      - ${DATA_BUNDLE_DIR:-./data-bundles/out}:/data:ro
+      - artifacts:/artifacts
+
   ghidra-base:
     <<: *common
     image: ${REGISTRY:-registry.internal/security-platform}/spt-ghidra-base:${TAG:-latest}

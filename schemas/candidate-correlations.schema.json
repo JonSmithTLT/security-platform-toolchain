@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/JonSmithTLT/security-platform-toolchain/schemas/candidate-correlations.schema.json",
+  "title": "CandidateCorrelations",
+  "description": "Soft correlation suggestions across normalized tool observations.",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "tool", "relationships"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tool": {
+      "type": "string",
+      "minLength": 1
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Relationship"
+      }
+    }
+  },
+  "definitions": {
+    "Signal": {
+      "type": "object",
+      "required": ["type", "weight"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "same_rule_same_location",
+            "same_dependency_cve",
+            "shared_cwe_pattern",
+            "source_location_overlap"
+          ]
+        },
+        "weight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "ObservationRef": {
+      "type": "object",
+      "required": ["tool", "finding_id"],
+      "additionalProperties": false,
+      "properties": {
+        "tool": { "type": "string" },
+        "finding_id": { "type": "string" }
+      }
+    },
+    "Relationship": {
+      "type": "object",
+      "required": [
+        "candidate_relationship_type",
+        "confidence",
+        "signals",
+        "source_observation_refs",
+        "target_observation_refs",
+        "recommended_action"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "candidate_relationship_type": {
+          "type": "string",
+          "enum": [
+            "possibly_related",
+            "same_rule_same_location",
+            "same_stack_signature",
+            "shared_cwe_pattern",
+            "same_dependency_cve"
+          ]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "signals": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Signal" },
+          "minItems": 1
+        },
+        "source_observation_refs": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ObservationRef" },
+          "minItems": 1
+        },
+        "target_observation_refs": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ObservationRef" },
+          "minItems": 1
+        },
+        "recommended_action": {
+          "type": "string",
+          "enum": ["review", "attach_as_context", "ignore_low_confidence"]
+        }
+      }
+    }
+  }
+}
