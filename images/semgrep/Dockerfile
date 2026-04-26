@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # images/semgrep/Dockerfile
 # Semgrep SAST scanner with custom rule support.
 
@@ -8,7 +9,8 @@ LABEL org.opencontainers.image.description="SPT Semgrep SAST image"
 
 USER root
 
-RUN pip3 install --no-cache-dir semgrep==1.75.0
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip3 install semgrep==1.75.0
 
 COPY images/semgrep/run-semgrep.sh /usr/local/bin/run-semgrep
 RUN sed -i 's/\r$//' /usr/local/bin/run-semgrep \

@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # images/gitnexus/Dockerfile
 # GitNexus CLI/MCP code intelligence image.
 
@@ -10,13 +11,16 @@ FROM ${NODE_IMAGE} AS gitnexus-builder
 
 ARG GITNEXUS_VERSION
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    --mount=type=cache,target=/root/.npm \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
         build-essential \
         git \
         python3 \
-    && npm install -g "gitnexus@${GITNEXUS_VERSION}" \
-    && npm cache clean --force \
-    && rm -rf /var/lib/apt/lists/*
+    && npm install -g "gitnexus@${GITNEXUS_VERSION}"
 
 FROM ${BASE_IMAGE}
 
@@ -27,11 +31,14 @@ ARG GITNEXUS_SOURCE_COMMIT
 
 USER root
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
         git \
         openssh-client \
-        python3 \
-    && rm -rf /var/lib/apt/lists/*
+        python3
 
 COPY --from=gitnexus-builder /usr/local/bin/node /usr/local/bin/node
 COPY --from=gitnexus-builder /usr/local/bin/gitnexus /usr/local/bin/gitnexus

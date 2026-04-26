@@ -1,4 +1,4 @@
-# Release Checklist: v0.1.1
+# Release Checklist: v0.1.2
 
 Use this checklist on the connected build host before publishing release
 assets. The release is considered publishable only after image, data, functional,
@@ -8,18 +8,53 @@ bundle, and restore validation pass.
 
 ```bash
 export REGISTRY=registry.internal/security-platform
-export TAG=0.1.1
+export TAG=0.1.2
 export DATA_DIR=data-bundles/sources
+# Optional, expensive full-advisory mode:
+# export INCLUDE_GITHUB_ADVISORY_DB=1
+```
+
+Release builds should run from native WSL/Linux storage, not `/mnt/c`. From the
+Windows worktree, sync a fast build copy first:
+
+```bash
+make native-worktree
+cd ~/spt-build/security-platform-toolchain
+```
+
+Or run the connected-side release through the native worktree in one step:
+
+```bash
+make native-release-smoke REGISTRY=$REGISTRY TAG=$TAG DATA_DIR=$DATA_DIR
 ```
 
 The automated release driver can run this checklist end to end:
 
 ```bash
+make doctor REGISTRY=$REGISTRY TAG=$TAG DATA_DIR=$DATA_DIR
 make release-smoke REGISTRY=$REGISTRY TAG=$TAG DATA_DIR=$DATA_DIR
+make release-evidence REGISTRY=$REGISTRY TAG=$TAG DATA_DIR=$DATA_DIR
+make release-policy-check REGISTRY=$REGISTRY TAG=$TAG
 ```
 
-It fetches data, runs smoke tests, exports bundles, splits large tarballs,
-verifies checksums, and writes:
+It runs preflight checks, fetches data, runs smoke tests, exports bundles,
+splits large tarballs, verifies checksums, records a release stage ledger under
+`artifacts/release-ledger/$TAG/`, and writes:
+
+Image builds run in parallel by default with `BUILD_JOBS=4`. Override with
+`BUILD_JOBS=<n>` when the build host has more or fewer cores/RAM.
+
+Data manifests use `DATA_MANIFEST_CHECKSUM_MODE=dataset` by default to avoid
+rehashing every file in many-small-file datasets. Use `full` for release
+evidence that needs per-file source checksums, or `metadata-only` for quick
+iteration.
+
+`make release-evidence` collects the self-scan dossier under
+`artifacts/release-evidence/$TAG/`: image SBOMs, Grype scans, repo secret/OSV
+scans, tool inventories, image sizes, checksums, and an artifact manifest.
+`make release-policy-check` validates required evidence files, failed evidence
+events, and image-size ceilings. Override the size gate with
+`MAX_IMAGE_MIB=<n>`.
 
 ```text
 offline-bundles/out/spt-release-$TAG.upload-assets.txt
@@ -28,6 +63,14 @@ offline-bundles/out/spt-release-$TAG.gh-upload.sh
 
 Use the manual sections below when you need to rerun or debug individual
 stages.
+
+To resume from a later release stage without rerunning earlier expensive work:
+
+```bash
+make release-smoke REGISTRY=$REGISTRY TAG=$TAG DATA_DIR=$DATA_DIR RESUME_FROM=split
+```
+
+Supported resume points are `data-bundle`, `split`, `verify`, and `upload`.
 
 The restore-side driver validates the generated assets from the consumer side:
 
@@ -49,7 +92,8 @@ make data-bundle-smoke TAG=$TAG DATA_DIR=$DATA_DIR
 Expected result:
 
 - OSV offline DBs are present.
-- GitHub Advisory Database is present.
+- GitHub Advisory Database is present only when
+  `INCLUDE_GITHUB_ADVISORY_DB=1` or `make data-fetch-full` is used.
 - YARA, Semgrep, and CodeQL data are present.
 - LadybugDB `fts` and `vector` extensions are present.
 
@@ -154,7 +198,7 @@ gh release create v$TAG \
   data-bundles/out/spt-data-bundle-$TAG.tar \
   data-bundles/out/spt-data-bundle-$TAG.tar.sha256 \
   --title "SPT offline bundle $TAG" \
-  --notes-file RELEASE_NOTES_0.1.1.md
+  --notes-file RELEASE_NOTES_0.1.2.md
 ```
 
 Use `gh release upload v$TAG ... --clobber` for replacement uploads.

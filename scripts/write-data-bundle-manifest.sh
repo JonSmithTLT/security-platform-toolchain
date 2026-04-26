@@ -7,10 +7,11 @@ DATA_BUNDLE_DIR="${DATA_BUNDLE_DIR:-data-bundles/out}"
 SANITIZED="${SANITIZED:-false}"
 MANIFEST="${DATA_BUNDLE_DIR}/spt-data-bundle-${TAG}.manifest.json"
 SOURCE_SUMS="${DATA_BUNDLE_DIR}/spt-data-bundle-${TAG}.source-checksums.sha256"
+DATA_MANIFEST_CHECKSUM_MODE="${DATA_MANIFEST_CHECKSUM_MODE:-full}"
 
 mkdir -p "${DATA_BUNDLE_DIR}"
 
-python3 - "${DATA_DIR}" "${MANIFEST}" "${SOURCE_SUMS}" "${SANITIZED}" <<'PY'
+python3 - "${DATA_DIR}" "${MANIFEST}" "${SOURCE_SUMS}" "${SANITIZED}" "${DATA_MANIFEST_CHECKSUM_MODE}" <<'PY'
 import datetime as dt
 import hashlib
 import json
@@ -18,8 +19,12 @@ import os
 import sys
 import time
 
-data_dir, manifest_path, source_sums_path, sanitized_arg = sys.argv[1:5]
+data_dir, manifest_path, source_sums_path, sanitized_arg, checksum_mode_arg = sys.argv[1:6]
 sanitized = sanitized_arg.lower() == "true"
+checksum_mode = checksum_mode_arg.lower()
+valid_modes = {"full", "dataset", "metadata-only"}
+if checksum_mode not in valid_modes:
+    raise SystemExit(f"DATA_MANIFEST_CHECKSUM_MODE must be one of {sorted(valid_modes)}, got {checksum_mode_arg!r}")
 progress_every_files = int(os.environ.get("DATA_MANIFEST_PROGRESS_FILES", "5000"))
 progress_every_seconds = int(os.environ.get("DATA_MANIFEST_PROGRESS_SECONDS", "15"))
 reuse_source_sums = os.environ.get("DATA_MANIFEST_REUSE_SOURCE_SUMS", "0") == "1"
@@ -43,6 +48,11 @@ def load_metadata(path, name):
             return json.load(fh)
     return {}
 
+def stable_json_digest(data):
+    digest = hashlib.sha256()
+    digest.update(json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+    return digest.hexdigest()
+
 def append_dataset(name, metadata, file_count, digest, checksum_mode):
     datasets.append({
         "name": name,
@@ -62,7 +72,42 @@ def append_dataset(name, metadata, file_count, digest, checksum_mode):
         },
     })
 
-if reuse_source_sums and os.path.exists(source_sums_path) and os.path.getsize(source_sums_path) > 0:
+if checksum_mode == "metadata-only":
+    log("Using metadata-only data manifest mode; content is not hashed")
+    for name in sorted(os.listdir(data_dir)):
+        path = os.path.join(data_dir, name)
+        if not os.path.isdir(path):
+            continue
+        metadata = load_metadata(path, name)
+        append_dataset(name, metadata, 0, stable_json_digest(metadata), "metadata-only")
+elif checksum_mode == "dataset":
+    log("Using dataset-level data manifest mode")
+    with open(source_sums_path, "w", encoding="utf-8") as sums_fh:
+        for name in sorted(os.listdir(data_dir)):
+            path = os.path.join(data_dir, name)
+            if not os.path.isdir(path):
+                continue
+            metadata = load_metadata(path, name)
+            digest = hashlib.sha256()
+            digest.update(stable_json_digest(metadata).encode("utf-8"))
+
+            source_digest_files = []
+            for filename in sorted(os.listdir(path)):
+                if filename == "SHA256SUMS" or filename.endswith(".sha256"):
+                    source_digest_files.append(filename)
+
+            for filename in source_digest_files:
+                full = os.path.join(path, filename)
+                digest.update(filename.encode("utf-8"))
+                with open(full, "rb") as fh:
+                    for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+                        digest.update(chunk)
+
+            dataset_digest = digest.hexdigest()
+            sums_fh.write(f"{dataset_digest}  ./{name}\n")
+            append_dataset(name, metadata, 0, dataset_digest, "dataset")
+            log(f"Recorded dataset digest for {name}")
+elif reuse_source_sums and os.path.exists(source_sums_path) and os.path.getsize(source_sums_path) > 0:
     log(f"Reusing existing data source checksums from {source_sums_path}")
     grouped = {}
     with open(source_sums_path, "r", encoding="utf-8") as sums_fh:
@@ -90,7 +135,7 @@ if reuse_source_sums and os.path.exists(source_sums_path) and os.path.getsize(so
         append_dataset(name, metadata, len(entries), digest.hexdigest(), "source-checksums-reused")
         log(f"Reused {name}: {len(entries)} checksummed files")
 else:
-    log(f"Writing data source checksums to {source_sums_path}")
+    log(f"Writing full data source checksums to {source_sums_path}")
     with open(source_sums_path, "w", encoding="utf-8") as sums_fh:
         for name in sorted(os.listdir(data_dir)):
             path = os.path.join(data_dir, name)

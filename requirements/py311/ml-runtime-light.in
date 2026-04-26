@@ -1,0 +1,4 @@
+# requirements/py311/ml-runtime-light.in
+# CPython 3.11 / linux_x86_64 — lightweight ML inference only (no training frameworks)
+# Build failure does not block required groups.
+onnxruntime

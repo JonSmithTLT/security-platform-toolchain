@@ -1,0 +1,23 @@
+# requirements/py311/core-python.in
+# CPython 3.11 / linux_x86_64 — core runtime utilities
+jsonschema
+pyyaml
+requests
+urllib3
+certifi
+charset-normalizer
+idna
+click
+typer
+rich
+python-dotenv
+packaging
+tenacity
+attrs
+python-dateutil
+six
+typing-extensions
+jinja2
+tabulate
+structlog
+tomli

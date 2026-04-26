@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # images/fuzzing/Dockerfile
 # Coverage-guided compiled harness fuzzing image.
 
@@ -11,7 +12,11 @@ ARG HONGGFUZZ_REF=master
 
 USER root
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
         afl++ \
         binutils \
         binutils-dev \
@@ -30,8 +35,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libunwind-dev \
         llvm \
         llvm-dev \
-        pkg-config \
-    && rm -rf /var/lib/apt/lists/*
+        pkg-config
 
 RUN git clone --depth=1 --branch "${HONGGFUZZ_REF}" "${HONGGFUZZ_REPO}" /tmp/honggfuzz \
     || (git clone --depth=1 "${HONGGFUZZ_REPO}" /tmp/honggfuzz && git -C /tmp/honggfuzz fetch --depth=1 origin "${HONGGFUZZ_REF}" && git -C /tmp/honggfuzz checkout FETCH_HEAD) \

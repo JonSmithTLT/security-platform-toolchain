@@ -1,0 +1,14 @@
+# requirements/py311/testing-dev.in
+# CPython 3.11 / linux_x86_64 — test frameworks, linting, type checking
+pytest
+pytest-cov
+pytest-timeout
+pytest-mock
+pytest-asyncio
+hypothesis
+coverage
+ruff
+mypy
+types-requests
+responses
+freezegun

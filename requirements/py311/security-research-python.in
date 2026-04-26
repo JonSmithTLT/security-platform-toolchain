@@ -1,0 +1,9 @@
+# requirements/py311/security-research-python.in
+# CPython 3.11 / linux_x86_64 — binary analysis and security research utilities
+# python-magic requires libmagic in the runtime image; the wheel itself is pure Python.
+cryptography
+pyelftools
+pefile
+python-magic
+capstone
+yara-python

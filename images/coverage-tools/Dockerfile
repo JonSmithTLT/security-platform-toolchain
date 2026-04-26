@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # images/coverage-tools/Dockerfile
 # Offline coverage collection and reporting tools.
 
@@ -8,11 +9,14 @@ LABEL org.opencontainers.image.description="SPT coverage tools image"
 
 USER root
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
         gcovr \
         lcov \
-        llvm \
-    && rm -rf /var/lib/apt/lists/*
+        llvm
 
 COPY images/coverage-tools/run-coverage-tools.sh /usr/local/bin/run-coverage-tools
 RUN sed -i 's/\r$//' /usr/local/bin/run-coverage-tools \

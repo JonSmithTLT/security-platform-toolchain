@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # images/c-cpp-analysis/Dockerfile
 # Static analysis for C/C++ projects using clang-tidy, cppcheck, and scan-build.
 
@@ -8,7 +9,11 @@ LABEL org.opencontainers.image.description="SPT C/C++ static analysis image"
 
 USER root
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
         clang \
         clang-tidy \
         clang-tools \
@@ -18,8 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ninja-build \
         gcc \
         g++ \
-        make \
-    && rm -rf /var/lib/apt/lists/*
+        make
 
 COPY images/c-cpp-analysis/run-analysis.sh /usr/local/bin/run-analysis
 RUN sed -i 's/\r$//' /usr/local/bin/run-analysis \

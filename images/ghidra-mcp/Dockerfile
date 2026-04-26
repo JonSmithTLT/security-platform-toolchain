@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # images/ghidra-mcp/Dockerfile
 # Bethington GhidraMCP runtime for analyst and Ghidra Server workflows.
 
@@ -20,10 +21,13 @@ ENV GHIDRA_HOME=/opt/ghidra \
     GHIDRA_MCP_MODE=smoke \
     JAVA_OPTS="-Xmx4g -XX:+UseG1GC"
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
         openjdk-21-jdk \
-        maven \
-    && rm -rf /var/lib/apt/lists/*
+        maven
 
 RUN git init "${GHIDRA_MCP_HOME}" \
     && cd "${GHIDRA_MCP_HOME}" \
@@ -33,8 +37,10 @@ RUN git init "${GHIDRA_MCP_HOME}" \
     && git rev-parse HEAD > .spt-source-revision \
     && chown -R spt:spt "${GHIDRA_MCP_HOME}"
 
-RUN cd "${GHIDRA_MCP_HOME}" \
-    && python3 -m pip install --no-cache-dir --disable-pip-version-check -r requirements.txt \
+RUN --mount=type=cache,target=/root/.cache/pip \
+    --mount=type=cache,target=/root/.m2 \
+    cd "${GHIDRA_MCP_HOME}" \
+    && python3 -m pip install --disable-pip-version-check -r requirements.txt \
     && if [ -d tools ]; then \
         python3 -m tools.setup ensure-prereqs --ghidra-path "${GHIDRA_HOME}" && \
         python3 -m tools.setup build && \

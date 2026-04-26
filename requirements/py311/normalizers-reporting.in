@@ -1,0 +1,14 @@
+# requirements/py311/normalizers-reporting.in
+# CPython 3.11 / linux_x86_64 — output normalization and report generation
+lxml
+beautifulsoup4
+markdown
+pygments
+defusedxml
+xmltodict
+junitparser
+sarif-om
+cyclonedx-python-lib
+packageurl-python
+spdx-tools
+cvss

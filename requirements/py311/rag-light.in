@@ -1,0 +1,5 @@
+# requirements/py311/rag-light.in
+# CPython 3.11 / linux_x86_64 — lightweight RAG helpers (no heavy ML)
+rank-bm25
+tiktoken
+networkx

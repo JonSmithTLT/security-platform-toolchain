@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # images/corpus-tools/Dockerfile
 # Corpus management utilities for fuzzing (minimise, deduplicate, merge).
 
@@ -8,10 +9,13 @@ LABEL org.opencontainers.image.description="SPT corpus management tools"
 
 USER root
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
         afl++ \
-        rsync \
-    && rm -rf /var/lib/apt/lists/*
+        rsync
 
 COPY images/corpus-tools/manage-corpus.sh /usr/local/bin/manage-corpus
 RUN sed -i 's/\r$//' /usr/local/bin/manage-corpus \

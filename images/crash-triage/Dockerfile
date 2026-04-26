@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # images/crash-triage/Dockerfile
 # Automated crash evidence improvement and sanitizer log triage.
 
@@ -8,7 +9,11 @@ LABEL org.opencontainers.image.description="SPT crash triage image"
 
 USER root
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
         binutils \
         elfutils \
         file \
@@ -16,8 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         lldb \
         llvm \
         strace \
-    && (apt-get install -y --no-install-recommends ltrace || true) \
-    && rm -rf /var/lib/apt/lists/*
+    && (apt-get install -y --no-install-recommends ltrace || true)
 
 COPY images/crash-triage/run-crash-triage.sh /usr/local/bin/run-crash-triage
 COPY images/crash-triage/triage-crash.sh /usr/local/bin/triage-crash

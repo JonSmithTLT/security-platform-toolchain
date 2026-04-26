@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # images/harness-builder/Dockerfile
 # Harness scaffold, build, validation, and smoke image.
 
@@ -8,7 +9,11 @@ LABEL org.opencontainers.image.description="SPT harness builder image"
 
 USER root
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
         afl++ \
         bear \
         clang \
@@ -24,8 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ninja-build \
         pkg-config \
         python3-jinja2 \
-        file \
-    && rm -rf /var/lib/apt/lists/*
+        file
 
 COPY images/harness-builder/templates/ /opt/spt/harness-templates/
 COPY images/harness-builder/run-harness-builder.sh /usr/local/bin/run-harness-builder

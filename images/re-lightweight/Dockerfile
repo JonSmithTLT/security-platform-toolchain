@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # images/re-lightweight/Dockerfile
 # Lightweight reverse-engineering triage tools.
 
@@ -8,13 +9,16 @@ LABEL org.opencontainers.image.description="SPT lightweight RE triage image"
 
 USER root
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
         binutils \
         file \
         libimage-exiftool-perl \
         python3-magic \
-        xxd \
-    && rm -rf /var/lib/apt/lists/*
+        xxd
 
 COPY images/re-lightweight/run-re-lightweight.sh /usr/local/bin/run-re-lightweight
 RUN sed -i 's/\r$//' /usr/local/bin/run-re-lightweight \

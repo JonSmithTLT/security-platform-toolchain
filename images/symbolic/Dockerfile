@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # images/symbolic/Dockerfile
 # Symbolic execution using angr (Python) and optional KLEE support.
 
@@ -8,14 +9,18 @@ LABEL org.opencontainers.image.description="SPT symbolic execution image"
 
 USER root
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    --mount=type=cache,target=/root/.cache/pip \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
         gcc \
         g++ \
         libffi-dev \
         libssl-dev \
         python3-dev \
-    && rm -rf /var/lib/apt/lists/* \
-    && pip3 install --no-cache-dir angr==9.2.127
+    && pip3 install angr==9.2.127
 
 COPY images/symbolic/run-symbolic.sh /usr/local/bin/run-symbolic
 COPY images/symbolic/angr-explore.py /usr/local/lib/spt/angr-explore.py

@@ -17,18 +17,24 @@ FETCHERS=(
     fetch-mitre-attack.sh
     fetch-epss.sh
     fetch-nvd.sh
-    fetch-github-advisory-db.sh
     fetch-osv-db.sh
     fetch-ladybug-extensions.sh
     fetch-yara-rules.sh
     fetch-semgrep-rules.sh
     fetch-codeql-packs.sh
     fetch-vendor-advisories.sh
+    fetch-python-wheels.sh
 )
 
 mkdir -p "${OUT_ROOT}"
 for fetcher in "${FETCHERS[@]}"; do
     "${SCRIPT_DIR}/${fetcher}" "${OUT_ROOT}"
 done
+
+if [[ "${INCLUDE_GITHUB_ADVISORY_DB:-0}" != "0" ]]; then
+    "${SCRIPT_DIR}/fetch-github-advisory-db.sh" "${OUT_ROOT}"
+else
+    printf '==> Skipping GitHub Advisory DB (INCLUDE_GITHUB_ADVISORY_DB=0)\n'
+fi
 
 printf '==> Data fetch complete: %s\n' "${OUT_ROOT}"

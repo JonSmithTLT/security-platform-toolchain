@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # images/protocol-fuzzing/Dockerfile
 # Boofuzz-based protocol/session fuzzing image.
 
@@ -8,7 +9,11 @@ LABEL org.opencontainers.image.description="SPT protocol fuzzing image (boofuzz)
 
 USER root
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
         curl \
         iproute2 \
         netcat-openbsd \
@@ -17,10 +22,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         socat \
         sqlite3 \
         tcpdump \
-        tshark \
-    && rm -rf /var/lib/apt/lists/*
+        tshark
 
-RUN pip3 install --no-cache-dir boofuzz==0.4.2 scapy==2.5.0
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip3 install boofuzz==0.4.2 scapy==2.5.0
 
 COPY images/protocol-fuzzing/run-boofuzz.sh /usr/local/bin/run-boofuzz
 COPY images/protocol-fuzzing/run-protocol-fuzzing.sh /usr/local/bin/run-protocol-fuzzing

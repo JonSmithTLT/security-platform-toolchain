@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # images/base/Dockerfile
 # Base image for all security-platform-toolchain tool images.
 # Provides: Python 3, common OS packages, shared scripts, and non-root user.
@@ -14,7 +15,11 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \
         git \
@@ -24,11 +29,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         python3-venv \
         tini \
         unzip \
-        wget \
-    && rm -rf /var/lib/apt/lists/*
+        wget
 
-# Install jsonschema for emit-job-report.py validation
-RUN pip3 install --no-cache-dir jsonschema==4.23.0
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip3 install jsonschema==4.23.0
 
 # ── Shared scripts ──────────────────────────────────────────────────────────
 RUN mkdir -p /usr/local/lib/spt /usr/local/share/spt/schemas /artifacts

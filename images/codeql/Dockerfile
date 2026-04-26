@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # images/codeql/Dockerfile
 # CodeQL CLI wrapper for database creation and query execution.
 
@@ -11,10 +12,13 @@ USER root
 ARG CODEQL_VERSION=2.18.4
 ARG CODEQL_BUNDLE_URL=https://github.com/github/codeql-action/releases/download/codeql-bundle-v${CODEQL_VERSION}/codeql-bundle-linux64.tar.gz
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
         openjdk-17-jdk-headless \
         build-essential \
-    && rm -rf /var/lib/apt/lists/* \
     && curl -fsSL "${CODEQL_BUNDLE_URL}" | tar -xz -C /opt \
     && ln -s /opt/codeql/codeql /usr/local/bin/codeql
 

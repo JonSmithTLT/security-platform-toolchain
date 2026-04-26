@@ -79,14 +79,14 @@ security-platform-toolchain/
 Release operators should start with:
 
 - [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md)
-- [`RELEASE_NOTES_0.1.1-smoke.md`](RELEASE_NOTES_0.1.1-smoke.md)
+- [`RELEASE_NOTES_0.1.2.md`](RELEASE_NOTES_0.1.2.md)
 - [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md)
 - [`SECURITY_NOTES.md`](SECURITY_NOTES.md)
 
 The connected-side release driver is:
 
 ```bash
-make release-smoke REGISTRY=registry.internal/security-platform TAG=0.1.1-smoke DATA_DIR=data-bundles/sources
+make native-release-smoke REGISTRY=registry.internal/security-platform TAG=0.1.2 DATA_DIR=data-bundles/sources
 ```
 
 It runs the smoke checklist, creates image/data bundles, splits large tarballs,
@@ -95,7 +95,7 @@ verifies checksums, and writes upload helper files under `offline-bundles/out/`.
 The restore-side validation driver is:
 
 ```bash
-make release-restore REGISTRY=registry.internal/security-platform TAG=0.1.1-smoke RUN_FUNCTIONAL=1
+make release-restore REGISTRY=registry.internal/security-platform TAG=0.1.2 RUN_FUNCTIONAL=1
 ```
 
 It verifies split image/data assets, reassembles bundles, loads images, runs
@@ -234,7 +234,7 @@ Current release notes:
   PoC/webshell/RCE strings and may be flagged by Defender or similar tooling.
 
 For the current smoke release, see
-[`RELEASE_NOTES_0.1.1-smoke.md`](RELEASE_NOTES_0.1.1-smoke.md) and
+[`RELEASE_NOTES_0.1.2.md`](RELEASE_NOTES_0.1.2.md) and
 [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md).
 
 ---

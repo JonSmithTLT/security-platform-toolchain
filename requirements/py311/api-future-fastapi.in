@@ -1,0 +1,16 @@
+# requirements/py311/api-future-fastapi.in
+# CPython 3.11 / linux_x86_64 — FastAPI service layer (future migration)
+fastapi
+starlette
+uvicorn[standard]
+pydantic
+pydantic-core
+pydantic-settings
+python-multipart
+httpx
+httpcore
+orjson
+sse-starlette
+anyio
+sniffio
+h11
