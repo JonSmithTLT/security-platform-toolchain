@@ -11,7 +11,7 @@
 ARG BASE_IMAGE=registry.internal/security-platform/spt-base:latest
 ARG WHEELHOUSE_IMAGE=registry.internal/security-platform/spt-python-wheelhouse-py311:latest
 
-FROM python:3.11-slim AS py311
+FROM python:3.14-slim AS py311
 FROM ${WHEELHOUSE_IMAGE} AS wheelhouse
 FROM ${BASE_IMAGE}
 
