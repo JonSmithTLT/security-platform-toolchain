@@ -1,5 +1,7 @@
 # requirements/py311/rag-light.in
 # CPython 3.11 / linux_x86_64 — lightweight RAG helpers (no heavy ML)
 rank-bm25
-tiktoken
+tiktoken<=0.11.0
 networkx
+# Keep py311 manylinux_2_17 binary-only downloads inside available wheels.
+numpy<=2.2.6

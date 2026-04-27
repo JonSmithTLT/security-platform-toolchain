@@ -21,6 +21,7 @@ SCHEMA_BY_NAME = {
     "manifest.json": "artifact-manifest.schema.json",
     "platform-handoff-contract.json": "platform-handoff-bundle.schema.json",
     "candidate-correlations.json": "candidate-correlations.schema.json",
+    "vulnerability-enrichments.json": "vulnerability-enrichments.schema.json",
     "tool-result.json": "tool-result.schema.json",
     "harness-manifest.json": "harness-manifest.schema.json",
     "fuzz-campaign.json": "fuzz-campaign.schema.json",

@@ -2,6 +2,11 @@
 # Functional smoke test for the offline SPT image bundle.
 
 set -euo pipefail
+# Ensure artifact directories are world-writable so the spt user (UID 1001)
+# inside containers can write to bind-mounted paths created by the host user.
+# On NTFS/WSL this is automatic; on native Linux ext4 the default umask (022)
+# produces 755 directories that block container writes.
+umask 0000
 
 REGISTRY="${1:-${REGISTRY:-registry.internal/security-platform}}"
 TAG="${2:-${TAG:-latest}}"
@@ -13,6 +18,8 @@ fi
 DATA_DIR="$(cd "${DATA_DIR}" && pwd)"
 OUT_DIR="${ROOT_DIR}/artifacts/functional-smoke"
 FIXTURE_DIR="${OUT_DIR}/fixture"
+HOST_UID="$(id -u)"
+HOST_GID="$(id -g)"
 
 log() {
     printf '==> %s\n' "$*"
@@ -25,6 +32,14 @@ fail() {
 
 image() {
     printf '%s/spt-%s:%s' "${REGISTRY}" "$1" "${TAG}"
+}
+
+repair_artifact_ownership() {
+    [[ -e "${OUT_DIR}" ]] || return 0
+    docker run --rm --network none --user 0 \
+        -v "${OUT_DIR}:/target" \
+        "$(image base)" \
+        sh -c "chown -R ${HOST_UID}:${HOST_GID} /target" >/dev/null 2>&1 || true
 }
 
 assert_file() {
@@ -80,6 +95,8 @@ assert_contract() {
         python3 -c "import json; data=json.load(open('/check.json')); assert data['error_count'] == 0, data"
 }
 
+trap repair_artifact_ownership EXIT
+repair_artifact_ownership
 rm -rf "${OUT_DIR}"
 mkdir -p "${FIXTURE_DIR}"
 

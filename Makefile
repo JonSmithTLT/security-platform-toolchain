@@ -1,9 +1,12 @@
 # security-platform-toolchain Makefile
+# Local overrides (never committed): create Makefile.local with your personal
+# REGISTRY, TAG, DATA_DIR, NATIVE_WORKTREE, etc.
+-include Makefile.local
 
 REGISTRY   ?= registry.internal/security-platform
 TAG        ?= latest
 BASE_IMAGE ?= $(REGISTRY)/spt-base:$(TAG)
-IMAGES     := base schema-validator result-normalizers c-cpp-analysis coverage-tools harness-builder fuzzing protocol-fuzzing crash-triage replay-runner sbom osv-scanner secrets image-scanner re-lightweight yara intel-ingest rag-indexer diff-impact dependency-review ghidra-base ghidra-exporter ghidra-mcp eval-runner gitnexus semgrep codeql corpus-tools symbolic
+IMAGES     := base python-runtime schema-validator result-normalizers c-cpp-analysis coverage-tools harness-builder fuzzing protocol-fuzzing crash-triage replay-runner sbom osv-scanner secrets image-scanner re-lightweight yara intel-ingest rag-indexer diff-impact dependency-review ghidra-base ghidra-exporter ghidra-mcp eval-runner gitnexus semgrep codeql corpus-tools symbolic
 TARGET_REGISTRY ?= $(REGISTRY)
 SOURCE_REGISTRY ?= $(REGISTRY)
 GHIDRA_VERSION ?= 12.0.4
@@ -15,7 +18,8 @@ HONGGFUZZ_REF  ?= master
 INCLUDE_GITHUB_ADVISORY_DB ?= 0
 NVD_INCREMENTAL     ?= 0
 GIT_REVISION ?= $(shell git rev-parse --short=12 HEAD 2>/dev/null || echo unknown)
-BUILD_CREATED ?= $(shell date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || echo unknown)
+SOURCE_DATE_EPOCH ?= $(shell git log -1 --format=%ct 2>/dev/null || date +%s)
+BUILD_CREATED ?= $(shell date -u -d "@$(SOURCE_DATE_EPOCH)" '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date -u '+%Y-%m-%dT%H:%M:%SZ')
 SPT_SCHEMA_VERSION ?= 1.0.0
 OCI_SOURCE ?= https://github.com/JonSmithTLT/security-platform-toolchain
 OCI_LICENSE ?= MIT
@@ -26,7 +30,11 @@ OCI_LABEL_ARGS = \
     --label org.opencontainers.image.created="$(BUILD_CREATED)" \
     --label org.opencontainers.image.licenses="$(OCI_LICENSE)" \
     --label org.security-platform-toolchain.schema-version="$(SPT_SCHEMA_VERSION)"
-DOCKER_BUILD = docker build $(OCI_LABEL_ARGS)
+COMMA := ,
+REGISTRY_CACHE ?= 0
+REGISTRY_CACHE_REF_PREFIX ?= $(REGISTRY)/spt-build-cache
+DOCKER_CACHE_ARGS = $(if $(filter 1,$(REGISTRY_CACHE)),--cache-from type=registry$(COMMA)ref=$(REGISTRY_CACHE_REF_PREFIX)-$@:$(TAG) --cache-to type=registry$(COMMA)ref=$(REGISTRY_CACHE_REF_PREFIX)-$@:$(TAG)$(COMMA)mode=max,)
+DOCKER_BUILD = $(if $(filter 1,$(REGISTRY_CACHE)),docker buildx build --load $(OCI_LABEL_ARGS) $(DOCKER_CACHE_ARGS),docker build $(OCI_LABEL_ARGS))
 
 ## ── Bundle paths ────────────────────────────────────────────────────────────
 BUNDLE_DIR          ?= offline-bundles/out
@@ -40,53 +48,78 @@ SKIP_FETCH          ?= 0
 SKIP_BUILD          ?= 0
 SKIP_FUNCTIONAL     ?= 0
 SKIP_BUNDLE         ?= 0
-SKIP_HONGGFUZZ      ?= 0
+SKIP_HONGGFUZZ      ?= 1
 RESUME_FROM         ?=
 RUN_FUNCTIONAL      ?= 0
-BUNDLE_TAR          = $(BUNDLE_DIR)/spt-bundle-$(TAG).tar
+BUNDLE_TAR          = $(BUNDLE_DIR)/spt-bundle-$(TAG).tar.gz
 BUNDLE_MANIFEST     = $(BUNDLE_DIR)/spt-bundle-$(TAG).manifest.json
+IMAGE_BUNDLE_DIGEST ?=
+DATA_BUNDLE_DIGEST  ?=
+SPT_ARTIFACT_CACHE  ?= $(HOME)/.spt-artifact-cache
+ARTIFACT_CACHE_PRUNE_DAYS ?= 30
+GPG_KEY             ?=
+RELEASE_SUMMARY_OUT ?= artifacts/release-summary/$(TAG)/release-summary.md
 DATA_DIR            ?= data-bundles/sources
 DATA_BUNDLE_DIR     ?= data-bundles/out
 DATA_BUNDLE_NAME    ?= spt-data-bundle
-DATA_BUNDLE_TAR     = $(DATA_BUNDLE_DIR)/$(DATA_BUNDLE_NAME)-$(TAG).tar
+DATA_BUNDLE_TAR     = $(DATA_BUNDLE_DIR)/$(DATA_BUNDLE_NAME)-$(TAG).tar.gz
 DATA_SANITIZED_BUNDLE_NAME ?= spt-data-sanitized-bundle
 DATA_SANITIZED_STAGE ?= $(DATA_BUNDLE_DIR)/sanitized-$(TAG)
 DATA_SANITIZED_DIR   ?= $(DATA_SANITIZED_STAGE)/sources
-DATA_SANITIZED_TAR   = $(DATA_BUNDLE_DIR)/$(DATA_SANITIZED_BUNDLE_NAME)-$(TAG).tar
-DATA_DELTA_TAR      = $(DATA_BUNDLE_DIR)/spt-data-delta-$(TAG).tar
+DATA_SANITIZED_TAR   = $(DATA_BUNDLE_DIR)/$(DATA_SANITIZED_BUNDLE_NAME)-$(TAG).tar.gz
+DATA_DELTA_TAR      = $(DATA_BUNDLE_DIR)/spt-data-delta-$(TAG).tar.gz
+DATA_TAR_PARENT     = $(dir $(abspath $(DATA_DIR)))
+DATA_TAR_NAME       = $(notdir $(abspath $(DATA_DIR)))
 BASE_DATA_SOURCE_SUMS ?=
 DATA_MANIFEST_CHECKSUM_MODE ?= dataset
 RELEASE_LEDGER      ?= artifacts/release-ledger/$(TAG)/release-stages.jsonl
 SPLIT_SIZE          ?= 1900M
 MIN_FREE_GB         ?= 30
 ALLOW_SLOW_WORKTREE ?= 0
-NATIVE_WORKTREE     ?= $(HOME)/spt-build/security-platform-toolchain
+NATIVE_WORKTREE     ?= $(HOME)/spt-native-worktree
 ALLOW_NATIVE_DELETE ?= 0
+GZIP_CMD               := $(shell command -v pigz 2>/dev/null || echo gzip)
+GZIP_ARGS              ?= -n
+TAR_REPRO_ARGS         ?= --sort=name --mtime=@$(SOURCE_DATE_EPOCH) --owner=0 --group=0 --numeric-owner
+PYTHON_RUNTIME_IMAGE   ?= $(REGISTRY)/spt-python-runtime:$(TAG)
+WHEELHOUSE_IMAGE       ?= $(REGISTRY)/spt-python-wheelhouse-py311:$(TAG)
 RESET_NATIVE_WORKTREE ?= 0
-BUILD_JOBS          ?= 4
+BUILD_JOBS          ?= $(shell nproc 2>/dev/null || echo 4)
 MAX_IMAGE_MIB       ?= 4096
 ALLOW_FAILED_EVIDENCE ?= 0
 CVE_INDEX_OUT       ?= data-bundles/out/spt-cve-index.sqlite
+CVE_INDEX_DIGEST    ?=
 CVE_INDEX_LIMIT     ?=
 CVE_INDEX_SMOKE_OUT ?= artifacts/cve-index-smoke
+CVE_API_HOST        ?= 127.0.0.1
+CVE_API_PORT        ?= 8088
+RELEASE_SBOMS_DIGEST ?=
+COSIGN_KEY          ?=
+REQUIRE_IMAGE_SIGNATURES ?= 0
 TOOL_CATALOG_OUT ?= artifacts/tool-catalog
+PIPELINE_FILE ?= examples/pipelines/pipeline-smoke.yaml
+PIPELINE_PLAYBOOKS := examples/pipelines/dependency-triage.yaml examples/pipelines/fuzz-crash-replay.yaml examples/pipelines/protocol-fuzzing.yaml examples/pipelines/re-export-rag.yaml examples/pipelines/release-evidence-review.yaml
 PLATFORM_HANDOFF_DIR ?= artifacts/platform-handoff
 PLATFORM_HANDOFF_TAR ?= $(PLATFORM_HANDOFF_DIR)/spt-platform-handoff-$(TAG).tar
 ALLOW_EGRESS_AUDIT_FINDINGS ?= 0
 
-.PHONY: all build-all build-report help \
+.PHONY: all build-all build-report registry-cache-build help \
     doctor native-worktree native-release-smoke \
     lint test test-normalizers test-offline verify-offline \
 	functional-smoke smoke-honggfuzz data-bundle-smoke gitnexus-ladybug-smoke gitnexus-git-smoke offline-egress-audit \
-    release-smoke release-restore release-evidence release-policy-check scan-platform container-structure-test \
+    release-smoke release-restore release-upload release-summary release-tui release-ledger-summary release-evidence release-provenance release-sign-images release-verify-image-signatures release-attest-images release-sboms-cache-store release-sboms-cache-restore release-sboms-cache-info release-policy-check scan-platform container-structure-test \
+    python-runtime \
     python-wheelhouse-fetch python-wheelhouse-image python-wheelhouse-smoke python-wheelhouse-verify \
-	data-fetch data-fetch-quick data-fetch-full data-bundle data-bundle-sanitized data-delta-bundle data-verify data-check-freshness \
-	cve-index-smoke \
+	data-fetch data-fetch-quick data-fetch-full data-bundle data-bundle-sanitized data-bundle-sign data-bundle-verify-signature data-delta-bundle data-verify data-check-freshness data-bundle-cache-store data-bundle-cache-restore data-bundle-cache-info \
+	cve-index-smoke cve-api \
 	tool-catalog \
 	candidate-correlations \
+	vulnerability-enrichments \
+	pipeline-validate pipeline-dry-run pipeline-run-sample pipeline-smoke pipeline-playbooks-validate \
 	platform-handoff-bundle \
-    bundle bundle-save load-bundle image-list pull-bundle push push-registry \
-    image-sizes tool-versions-declared tool-versions-installed tool-drift-check backlog-status license-inventory cve-index \
+    bundle bundle-save load-bundle image-list pull-bundle image-bundle-cache-store image-bundle-cache-restore image-bundle-cache-info push push-registry \
+    image-sizes tool-versions-declared tool-versions-installed tool-drift-check backlog-status license-inventory cve-index cve-index-cache-store cve-index-cache-restore cve-index-cache-info \
+    artifact-cache-list artifact-cache-size artifact-cache-verify artifact-cache-prune \
     clean clean-bundles clean-artifacts clean-data-sources clean-all-generated \
     $(IMAGES)
 
@@ -98,7 +131,7 @@ help: ## Show available targets and key variables
 	@printf "\nSecurity Platform Toolchain\n"
 	@printf "Usage: make [target] [REGISTRY=...] [TAG=...] [DATA_DIR=...]\n\n"
 	@printf "Current values: REGISTRY=$(REGISTRY)  TAG=$(TAG)  DATA_DIR=$(DATA_DIR)\n\n"
-	@grep -E '^[a-zA-Z][a-zA-Z0-9_/-]*:.*?## .*$$' $(MAKEFILE_LIST) \
+	@grep -hE '^[a-zA-Z][a-zA-Z0-9_/-]*:.*?## .*$$' $(MAKEFILE_LIST) \
 	    | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-35s\033[0m %s\n", $$1, $$2}' \
 	    | sort
 	@printf "\n"
@@ -110,7 +143,7 @@ native-worktree: ## Sync repo to native WSL/Linux storage for faster release bui
 	@NATIVE_WORKTREE="$(NATIVE_WORKTREE)" ALLOW_NATIVE_DELETE="$(ALLOW_NATIVE_DELETE)" RESET_NATIVE_WORKTREE="$(RESET_NATIVE_WORKTREE)" bash scripts/prepare-native-worktree.sh
 
 native-release-smoke: native-worktree ## Sync to native WSL/Linux storage, then run release-smoke there
-	@cd "$(NATIVE_WORKTREE)" && $(MAKE) release-smoke REGISTRY="$(REGISTRY)" TAG="$(TAG)" DATA_DIR="$(DATA_DIR)" BUILD_JOBS="$(BUILD_JOBS)" RESUME_FROM="$(RESUME_FROM)" INCLUDE_GITHUB_ADVISORY_DB="$(INCLUDE_GITHUB_ADVISORY_DB)"
+	@cd "$(NATIVE_WORKTREE)" && $(MAKE) release-smoke REGISTRY="$(REGISTRY)" TAG="$(TAG)" DATA_DIR="$(abspath $(DATA_DIR))" BUILD_JOBS="$(BUILD_JOBS)" RESUME_FROM="$(RESUME_FROM)" INCLUDE_GITHUB_ADVISORY_DB="$(INCLUDE_GITHUB_ADVISORY_DB)"
 
 ## ── Build ───────────────────────────────────────────────────────────────────
 
@@ -119,14 +152,17 @@ build-all: $(IMAGES) ## Build all images (parallel: make -j 4 build-all)
 build-report: ## Build images serially and write per-image timing/size metrics
 	@REGISTRY="$(REGISTRY)" TAG="$(TAG)" IMAGES="$(IMAGES)" bash scripts/build-with-metrics.sh
 
+registry-cache-build: ## Build all images with BuildKit registry cache export/import
+	@$(MAKE) build-all REGISTRY_CACHE=1
+
 base: ## Build spt-base
 	$(DOCKER_BUILD) -t $(REGISTRY)/spt-base:$(TAG) -f images/base/Dockerfile .
 
-schema-validator: base ## Build spt-schema-validator
-	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-schema-validator:$(TAG) -f images/schema-validator/Dockerfile .
+schema-validator: python-runtime ## Build spt-schema-validator
+	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(PYTHON_RUNTIME_IMAGE) -t $(REGISTRY)/spt-schema-validator:$(TAG) -f images/schema-validator/Dockerfile .
 
-result-normalizers: base ## Build spt-result-normalizers
-	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-result-normalizers:$(TAG) -f images/result-normalizers/Dockerfile .
+result-normalizers: python-runtime ## Build spt-result-normalizers
+	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(PYTHON_RUNTIME_IMAGE) -t $(REGISTRY)/spt-result-normalizers:$(TAG) -f images/result-normalizers/Dockerfile .
 
 c-cpp-analysis: base ## Build spt-c-cpp-analysis
 	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-c-cpp-analysis:$(TAG) -f images/c-cpp-analysis/Dockerfile .
@@ -167,14 +203,14 @@ re-lightweight: base ## Build spt-re-lightweight
 yara: base ## Build spt-yara
 	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-yara:$(TAG) -f images/yara/Dockerfile .
 
-intel-ingest: base ## Build spt-intel-ingest
-	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-intel-ingest:$(TAG) -f images/intel-ingest/Dockerfile .
+intel-ingest: python-runtime ## Build spt-intel-ingest
+	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(PYTHON_RUNTIME_IMAGE) -t $(REGISTRY)/spt-intel-ingest:$(TAG) -f images/intel-ingest/Dockerfile .
 
-rag-indexer: base ## Build spt-rag-indexer
-	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-rag-indexer:$(TAG) -f images/rag-indexer/Dockerfile .
+rag-indexer: python-runtime ## Build spt-rag-indexer
+	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(PYTHON_RUNTIME_IMAGE) -t $(REGISTRY)/spt-rag-indexer:$(TAG) -f images/rag-indexer/Dockerfile .
 
-diff-impact: base ## Build spt-diff-impact
-	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-diff-impact:$(TAG) -f images/diff-impact/Dockerfile .
+diff-impact: python-runtime ## Build spt-diff-impact
+	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(PYTHON_RUNTIME_IMAGE) -t $(REGISTRY)/spt-diff-impact:$(TAG) -f images/diff-impact/Dockerfile .
 
 dependency-review: base ## Build spt-dependency-review
 	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-dependency-review:$(TAG) -f images/dependency-review/Dockerfile .
@@ -188,8 +224,8 @@ ghidra-exporter: ghidra-base ## Build spt-ghidra-exporter
 ghidra-mcp: ghidra-base ## Build spt-ghidra-mcp
 	$(DOCKER_BUILD) --build-arg GHIDRA_BASE_IMAGE=$(REGISTRY)/spt-ghidra-base:$(TAG) --build-arg GHIDRA_VERSION=$(GHIDRA_VERSION) --build-arg GHIDRA_MCP_REPO=$(GHIDRA_MCP_REPO) --build-arg GHIDRA_MCP_REF=$(GHIDRA_MCP_REF) -t $(REGISTRY)/spt-ghidra-mcp:$(TAG) -f images/ghidra-mcp/Dockerfile .
 
-eval-runner: base ## Build spt-eval-runner
-	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-eval-runner:$(TAG) -f images/eval-runner/Dockerfile .
+eval-runner: python-runtime ## Build spt-eval-runner
+	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(PYTHON_RUNTIME_IMAGE) -t $(REGISTRY)/spt-eval-runner:$(TAG) -f images/eval-runner/Dockerfile .
 
 gitnexus: base ## Build spt-gitnexus (offline LadybugDB patch applied at build time)
 	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-gitnexus:$(TAG) -f images/gitnexus/Dockerfile .
@@ -268,7 +304,7 @@ gitnexus-git-smoke: ## Prove real git repo indexing with LadybugDB extensions of
 	@bash examples/gitnexus-git-smoke/run-gitnexus-git-smoke.sh "$(REGISTRY)" "$(TAG)" "$(DATA_DIR)"
 
 smoke-honggfuzz: ## Run experimental honggfuzz smoke (non-gating)
-	@mkdir -p artifacts/honggfuzz-smoke
+	@mkdir -p artifacts/honggfuzz-smoke && chmod 777 artifacts/honggfuzz-smoke
 	@echo "==> Experimental honggfuzz smoke (non-gating)"
 	@docker run --rm --network none \
 	    -e JOB_ID=experimental-honggfuzz \
@@ -283,10 +319,29 @@ data-bundle-smoke: ## Verify data bundle integrity
 
 ## ── Python Wheelhouse (CPython 3.11 / linux_x86_64) ────────────────────────
 
+python-runtime: base python-wheelhouse-image ## Build spt-python-runtime
+	$(DOCKER_BUILD) \
+	    --build-arg BASE_IMAGE=$(BASE_IMAGE) \
+	    --build-arg WHEELHOUSE_IMAGE=$(WHEELHOUSE_IMAGE) \
+	    -t $(PYTHON_RUNTIME_IMAGE) \
+	    -f images/python-runtime/Dockerfile .
+
 python-wheelhouse-fetch: ## Compile lock files and download CPython 3.11 wheels (requires internet + Docker)
 	@bash data-bundles/fetch/fetch-python-wheels.sh "$(DATA_DIR)"
 
 python-wheelhouse-image: ## Build the spt-python-wheelhouse-py311 data carrier image
+	@test -d "$(DATA_DIR)/python-wheels/py311" && test -f "$(DATA_DIR)/python-wheels/py311/locks/core-python.lock" || \
+	    { printf '==> Wheelhouse data not found under %s/python-wheels/py311; fetching/restoring it now\n' "$(DATA_DIR)" >&2; \
+	      $(MAKE) python-wheelhouse-fetch DATA_DIR="$(DATA_DIR)"; }
+	@test -f "$(DATA_DIR)/python-wheels/py311/locks/core-python.lock" || \
+	    { printf 'ERROR: wheelhouse locks are missing after fetch: %s/python-wheels/py311/locks/core-python.lock\n' "$(DATA_DIR)" >&2; \
+	      printf 'Run: FORCE_FETCH=1 make python-wheelhouse-fetch DATA_DIR=%s\n' "$(DATA_DIR)" >&2; exit 2; }
+	@if [ "$(abspath $(DATA_DIR))" != "$(abspath data-bundles/sources)" ]; then \
+	    printf '==> Staging wheelhouse from %s into Docker build context\n' "$(DATA_DIR)"; \
+	    mkdir -p data-bundles/sources/python-wheels; \
+	    rm -rf data-bundles/sources/python-wheels/py311; \
+	    cp -a "$(DATA_DIR)/python-wheels/py311" data-bundles/sources/python-wheels/; \
+	fi
 	$(DOCKER_BUILD) \
 	    -t $(REGISTRY)/spt-python-wheelhouse-py311:$(TAG) \
 	    -f images/python-wheelhouse-py311/Dockerfile .
@@ -340,6 +395,18 @@ tool-drift-check: ## Fail if installed tool probes fail or declared versions dri
 backlog-status: ## Compare FUTURE_WORK Tier 1 checkboxes with repo evidence
 	@python3 scripts/backlog-status.py
 
+artifact-cache-list: ## List content-addressed artifact cache entries
+	@python3 scripts/artifact-cache-admin.py --cache-root "$(SPT_ARTIFACT_CACHE)" list
+
+artifact-cache-size: ## Show content-addressed artifact cache size by type
+	@python3 scripts/artifact-cache-admin.py --cache-root "$(SPT_ARTIFACT_CACHE)" size
+
+artifact-cache-verify: ## Verify all content-addressed artifact cache checksums
+	@python3 scripts/artifact-cache-admin.py --cache-root "$(SPT_ARTIFACT_CACHE)" verify
+
+artifact-cache-prune: ## DESTRUCTIVE: prune old cache entries; set CONFIRM=yes
+	@python3 scripts/artifact-cache-admin.py --cache-root "$(SPT_ARTIFACT_CACHE)" prune --older-than-days "$(ARTIFACT_CACHE_PRUNE_DAYS)" --confirm "$(CONFIRM)"
+
 license-inventory: ## Generate lightweight tool, wheel, and dataset license inventory
 	@python3 scripts/license-inventory.py --data-dir "$(DATA_DIR)" --out-dir "artifacts/license-inventory"
 
@@ -352,12 +419,28 @@ container-structure-test: ## Validate built image structure via docker inspect
 
 cve-index: ## Build offline CVE cross-reference SQLite index
 	@python3 scripts/build-cve-index.py --data-dir "$(DATA_DIR)" --out "$(CVE_INDEX_OUT)" $(if $(CVE_INDEX_LIMIT),--max-records-per-source "$(CVE_INDEX_LIMIT)",)
+	@sha256sum "$(CVE_INDEX_OUT)" > "$(CVE_INDEX_OUT).sha256"
+	@cat "$(CVE_INDEX_OUT).sha256"
+
+cve-index-cache-store: ## Store CVE SQLite index in the content-addressed cache
+	@SPT_ARTIFACT_CACHE="$(SPT_ARTIFACT_CACHE)" CVE_INDEX_OUT="$(CVE_INDEX_OUT)" bash scripts/cache-cve-index.sh store
+
+cve-index-cache-restore: ## Restore CVE SQLite index from cache (set CVE_INDEX_DIGEST=sha256:...)
+	@test -n "$(CVE_INDEX_DIGEST)" || { echo "CVE_INDEX_DIGEST is required"; exit 2; }
+	@SPT_ARTIFACT_CACHE="$(SPT_ARTIFACT_CACHE)" CVE_INDEX_OUT="$(CVE_INDEX_OUT)" CVE_INDEX_DIGEST="$(CVE_INDEX_DIGEST)" bash scripts/cache-cve-index.sh restore
+
+cve-index-cache-info: ## Show cached CVE index metadata (set CVE_INDEX_DIGEST=sha256:...)
+	@test -n "$(CVE_INDEX_DIGEST)" || { echo "CVE_INDEX_DIGEST is required"; exit 2; }
+	@SPT_ARTIFACT_CACHE="$(SPT_ARTIFACT_CACHE)" CVE_INDEX_OUT="$(CVE_INDEX_OUT)" CVE_INDEX_DIGEST="$(CVE_INDEX_DIGEST)" bash scripts/cache-cve-index.sh info
 
 cve-index-smoke: ## Query fixture lockfile against offline CVE index and emit enrichment candidates
 	@python3 scripts/cve-index-smoke.py \
 	    --index "$(CVE_INDEX_OUT)" \
 	    --fixture "examples/cve-index-smoke/requirements.txt" \
 	    --out-dir "$(CVE_INDEX_SMOKE_OUT)"
+
+cve-api: ## Serve the read-only local CVE index API with FastAPI
+	@python3 scripts/spt-cve-api.py --index "$(CVE_INDEX_OUT)" --host "$(CVE_API_HOST)" --port "$(CVE_API_PORT)"
 
 tool-catalog: ## Generate MCP/tool catalog from wrappers, image metadata, and examples
 	@python3 scripts/generate-tool-catalog.py \
@@ -368,6 +451,25 @@ tool-catalog: ## Generate MCP/tool catalog from wrappers, image metadata, and ex
 candidate-correlations: ## Generate soft candidate-correlations.json artifacts from normalized findings
 	@python3 scripts/generate-candidate-correlations.py --results-dir "artifacts/results" --out-dir "artifacts/results"
 
+vulnerability-enrichments: ## Generate offline CVSS/EPSS/KEV enrichment candidates from tool-result CVEs
+	@python3 scripts/generate-vulnerability-enrichments.py --index "$(CVE_INDEX_OUT)" --results-dir "artifacts/results" --out-dir "artifacts/results"
+
+pipeline-validate: ## Validate an SPT pipeline YAML definition
+	@python3 scripts/spt-pipeline.py validate "$(PIPELINE_FILE)"
+
+pipeline-dry-run: ## Render an SPT pipeline run without starting containers
+	@python3 scripts/spt-pipeline.py dry-run "$(PIPELINE_FILE)"
+
+pipeline-run-sample: ## Run the sample two-step SPT pipeline with Docker
+	@python3 scripts/spt-pipeline.py run "examples/pipelines/pipeline-smoke.yaml"
+
+pipeline-smoke: pipeline-validate pipeline-dry-run ## Host smoke for the pipeline parser and report writer
+
+pipeline-playbooks-validate: ## Validate curated offline analyst pipeline playbooks
+	@for playbook in $(PIPELINE_PLAYBOOKS); do \
+	    python3 scripts/spt-pipeline.py validate "$$playbook" || exit 1; \
+	done
+
 ## ── Release ─────────────────────────────────────────────────────────────────
 
 release-smoke: ## Run full release smoke (build + verify + bundle)
@@ -376,8 +478,58 @@ release-smoke: ## Run full release smoke (build + verify + bundle)
 release-restore: ## Restore and validate a release bundle
 	@TAG="$(TAG)" REGISTRY="$(REGISTRY)" BUNDLE_DIR="$(BUNDLE_DIR)" DATA_BUNDLE_DIR="$(DATA_BUNDLE_DIR)" RESTORE_DIR="$(RESTORE_DIR)" RESTORED_DATA_DIR="$(RESTORED_DATA_DIR)" SKIP_DOCKER_LOAD="$(SKIP_DOCKER_LOAD)" SKIP_VERIFY_OFFLINE="$(SKIP_VERIFY_OFFLINE)" SKIP_DATA_EXTRACT="$(SKIP_DATA_EXTRACT)" RUN_FUNCTIONAL="$(RUN_FUNCTIONAL)" bash scripts/restore-release-bundle.sh
 
+release-upload: ## Create/update GitHub release and upload assets from manifest
+	@TAG="$(TAG)" BUNDLE_DIR="$(BUNDLE_DIR)" bash scripts/release-upload-helper.sh
+
+release-summary: ## Generate compact markdown release evidence summary
+	@python3 scripts/generate-release-summary.py \
+	    --tag "$(TAG)" \
+	    --bundle-dir "$(BUNDLE_DIR)" \
+	    --data-bundle-dir "$(DATA_BUNDLE_DIR)" \
+	    --release-ledger "$(RELEASE_LEDGER)" \
+	    --evidence-dir "artifacts/release-evidence/$(TAG)" \
+	    --out "$(RELEASE_SUMMARY_OUT)"
+
+release-tui: ## Open the local release ledger terminal viewer
+	@python3 scripts/release-ledger-tui.py --tag "$(TAG)" --ledger "$(RELEASE_LEDGER)" --bundle-dir "$(BUNDLE_DIR)" --data-bundle-dir "$(DATA_BUNDLE_DIR)"
+
+release-ledger-summary: ## Print a noninteractive release ledger summary
+	@python3 scripts/release-ledger-tui.py --summary --tag "$(TAG)" --ledger "$(RELEASE_LEDGER)" --bundle-dir "$(BUNDLE_DIR)" --data-bundle-dir "$(DATA_BUNDLE_DIR)"
+
 release-evidence: ## Collect SBOMs, scans, inventories, and manifests for built images
 	@REGISTRY="$(REGISTRY)" TAG="$(TAG)" IMAGES="$(IMAGES)" bash scripts/collect-release-evidence.sh
+
+release-provenance: ## Generate SLSA-style provenance predicates for built images
+	@python3 scripts/release-provenance.py \
+	    --registry "$(REGISTRY)" \
+	    --tag "$(TAG)" \
+	    --images "$(IMAGES)" \
+	    --out-dir "artifacts/release-evidence/$(TAG)/provenance" \
+	    --git-revision "$(GIT_REVISION)" \
+	    --source-date-epoch "$(SOURCE_DATE_EPOCH)" \
+	    --image-manifest "$(BUNDLE_MANIFEST)" \
+	    --data-manifest "$(DATA_BUNDLE_DIR)/spt-data-bundle-$(TAG).manifest.json" \
+	    --release-ledger "$(RELEASE_LEDGER)"
+
+release-sign-images: ## Sign release image references with cosign key-pair mode
+	@REGISTRY="$(REGISTRY)" TAG="$(TAG)" IMAGES="$(IMAGES)" COSIGN_KEY="$(COSIGN_KEY)" bash scripts/cosign-release-images.sh sign
+
+release-verify-image-signatures: ## Verify release image signatures with cosign
+	@REGISTRY="$(REGISTRY)" TAG="$(TAG)" IMAGES="$(IMAGES)" COSIGN_KEY="$(COSIGN_KEY)" bash scripts/cosign-release-images.sh verify
+
+release-attest-images: release-provenance ## Attach SLSA-style provenance attestations with cosign
+	@REGISTRY="$(REGISTRY)" TAG="$(TAG)" IMAGES="$(IMAGES)" COSIGN_KEY="$(COSIGN_KEY)" bash scripts/cosign-release-images.sh attest
+
+release-sboms-cache-store: ## Store generated release SBOM evidence in the content-addressed cache
+	@SPT_ARTIFACT_CACHE="$(SPT_ARTIFACT_CACHE)" TAG="$(TAG)" RELEASE_EVIDENCE_DIR="artifacts/release-evidence/$(TAG)" bash scripts/cache-release-sboms.sh store
+
+release-sboms-cache-restore: ## Restore release SBOM evidence from cache (set RELEASE_SBOMS_DIGEST=sha256:...)
+	@test -n "$(RELEASE_SBOMS_DIGEST)" || { echo "RELEASE_SBOMS_DIGEST is required"; exit 2; }
+	@SPT_ARTIFACT_CACHE="$(SPT_ARTIFACT_CACHE)" TAG="$(TAG)" RELEASE_EVIDENCE_DIR="artifacts/release-evidence/$(TAG)" RELEASE_SBOMS_DIGEST="$(RELEASE_SBOMS_DIGEST)" bash scripts/cache-release-sboms.sh restore
+
+release-sboms-cache-info: ## Show cached release SBOM metadata (set RELEASE_SBOMS_DIGEST=sha256:...)
+	@test -n "$(RELEASE_SBOMS_DIGEST)" || { echo "RELEASE_SBOMS_DIGEST is required"; exit 2; }
+	@SPT_ARTIFACT_CACHE="$(SPT_ARTIFACT_CACHE)" TAG="$(TAG)" RELEASE_EVIDENCE_DIR="artifacts/release-evidence/$(TAG)" RELEASE_SBOMS_DIGEST="$(RELEASE_SBOMS_DIGEST)" bash scripts/cache-release-sboms.sh info
 
 release-policy-check: ## Gate release evidence against size and required-artifact policy
 	@python3 scripts/release-policy-check.py \
@@ -386,6 +538,7 @@ release-policy-check: ## Gate release evidence against size and required-artifac
 	    --tag "$(TAG)" \
 	    --images "$(IMAGES)" \
 	    --max-image-mib "$(MAX_IMAGE_MIB)" \
+	    --require-image-signatures "$(REQUIRE_IMAGE_SIGNATURES)" \
 	    $(if $(filter 1,$(ALLOW_FAILED_EVIDENCE)),--allow-failed-evidence,)
 
 platform-handoff-bundle: release-evidence ## Package importer-friendly handoff contract + bundle
@@ -410,7 +563,7 @@ bundle-save: ## Save all images to a bundle tar + SHA256
 	@echo "==> Saving all images to $(BUNDLE_TAR)"
 	@docker save \
 	    $(foreach img,$(IMAGES),$(REGISTRY)/spt-$(img):$(TAG)) \
-	    -o $(BUNDLE_TAR)
+	    | $(GZIP_CMD) $(GZIP_ARGS) > $(BUNDLE_TAR)
 	@echo "Bundle written to $(BUNDLE_TAR)"
 	@echo "==> Writing image inventory to $(BUNDLE_MANIFEST)"
 	@docker image inspect \
@@ -419,6 +572,17 @@ bundle-save: ## Save all images to a bundle tar + SHA256
 	@echo "==> Generating SHA-256 checksum"
 	@sha256sum $(BUNDLE_TAR) > $(BUNDLE_TAR).sha256
 	@cat $(BUNDLE_TAR).sha256
+
+image-bundle-cache-store: ## Store image bundle artifacts in the content-addressed cache
+	@SPT_ARTIFACT_CACHE="$(SPT_ARTIFACT_CACHE)" TAG="$(TAG)" BUNDLE_DIR="$(BUNDLE_DIR)" BUNDLE_TAR="$(BUNDLE_TAR)" BUNDLE_MANIFEST="$(BUNDLE_MANIFEST)" bash scripts/cache-image-bundle.sh store
+
+image-bundle-cache-restore: ## Restore image bundle artifacts from cache (set IMAGE_BUNDLE_DIGEST=sha256:...)
+	@test -n "$(IMAGE_BUNDLE_DIGEST)" || { echo "IMAGE_BUNDLE_DIGEST is required"; exit 2; }
+	@SPT_ARTIFACT_CACHE="$(SPT_ARTIFACT_CACHE)" TAG="$(TAG)" BUNDLE_DIR="$(BUNDLE_DIR)" BUNDLE_TAR="$(BUNDLE_TAR)" BUNDLE_MANIFEST="$(BUNDLE_MANIFEST)" IMAGE_BUNDLE_DIGEST="$(IMAGE_BUNDLE_DIGEST)" bash scripts/cache-image-bundle.sh restore
+
+image-bundle-cache-info: ## Show cached image bundle metadata (set IMAGE_BUNDLE_DIGEST=sha256:...)
+	@test -n "$(IMAGE_BUNDLE_DIGEST)" || { echo "IMAGE_BUNDLE_DIGEST is required"; exit 2; }
+	@SPT_ARTIFACT_CACHE="$(SPT_ARTIFACT_CACHE)" TAG="$(TAG)" BUNDLE_DIR="$(BUNDLE_DIR)" BUNDLE_TAR="$(BUNDLE_TAR)" BUNDLE_MANIFEST="$(BUNDLE_MANIFEST)" IMAGE_BUNDLE_DIGEST="$(IMAGE_BUNDLE_DIGEST)" bash scripts/cache-image-bundle.sh info
 
 load-bundle: ## Load images from bundle tar into local Docker
 	@echo "==> Loading images from $(BUNDLE_TAR)"
@@ -439,7 +603,7 @@ pull-bundle: image-list ## Pull images from SOURCE_REGISTRY and save as bundle t
 	    docker pull "$$image" || exit 1; \
 	done < $(BUNDLE_DIR)/spt-images-$(TAG).txt
 	@echo "==> Saving pulled images to $(BUNDLE_TAR)"
-	@docker save $$(cat $(BUNDLE_DIR)/spt-images-$(TAG).txt) -o $(BUNDLE_TAR)
+	@docker save $$(cat $(BUNDLE_DIR)/spt-images-$(TAG).txt) | $(GZIP_CMD) $(GZIP_ARGS) > $(BUNDLE_TAR)
 	@docker image inspect $$(cat $(BUNDLE_DIR)/spt-images-$(TAG).txt) > $(BUNDLE_MANIFEST)
 	@sha256sum $(BUNDLE_TAR) > $(BUNDLE_TAR).sha256
 	@cat $(BUNDLE_TAR).sha256
@@ -459,9 +623,20 @@ data-bundle: ## Create a data bundle tar from sources
 	@mkdir -p $(DATA_BUNDLE_DIR)
 	@TAG="$(TAG)" DATA_DIR="$(DATA_DIR)" DATA_BUNDLE_DIR="$(DATA_BUNDLE_DIR)" DATA_BUNDLE_NAME="$(DATA_BUNDLE_NAME)" DATA_MANIFEST_CHECKSUM_MODE="$(DATA_MANIFEST_CHECKSUM_MODE)" bash scripts/write-data-bundle-manifest.sh
 	@echo "==> Creating data bundle $(DATA_BUNDLE_TAR)"
-	@tar -cf $(DATA_BUNDLE_TAR) -C data-bundles sources
+	@tar $(TAR_REPRO_ARGS) --transform 's|^$(DATA_TAR_NAME)|sources|' -c -C "$(DATA_TAR_PARENT)" "$(DATA_TAR_NAME)" | $(GZIP_CMD) $(GZIP_ARGS) > $(DATA_BUNDLE_TAR)
 	@sha256sum $(DATA_BUNDLE_TAR) > $(DATA_BUNDLE_TAR).sha256
 	@cat $(DATA_BUNDLE_TAR).sha256
+
+data-bundle-cache-store: ## Store data bundle artifacts in the content-addressed cache
+	@SPT_ARTIFACT_CACHE="$(SPT_ARTIFACT_CACHE)" TAG="$(TAG)" DATA_BUNDLE_DIR="$(DATA_BUNDLE_DIR)" DATA_BUNDLE_NAME="$(DATA_BUNDLE_NAME)" DATA_BUNDLE_TAR="$(DATA_BUNDLE_TAR)" bash scripts/cache-data-bundle.sh store
+
+data-bundle-cache-restore: ## Restore data bundle artifacts from cache (set DATA_BUNDLE_DIGEST=sha256:...)
+	@test -n "$(DATA_BUNDLE_DIGEST)" || { echo "DATA_BUNDLE_DIGEST is required"; exit 2; }
+	@SPT_ARTIFACT_CACHE="$(SPT_ARTIFACT_CACHE)" TAG="$(TAG)" DATA_BUNDLE_DIR="$(DATA_BUNDLE_DIR)" DATA_BUNDLE_NAME="$(DATA_BUNDLE_NAME)" DATA_BUNDLE_TAR="$(DATA_BUNDLE_TAR)" DATA_BUNDLE_DIGEST="$(DATA_BUNDLE_DIGEST)" bash scripts/cache-data-bundle.sh restore
+
+data-bundle-cache-info: ## Show cached data bundle metadata (set DATA_BUNDLE_DIGEST=sha256:...)
+	@test -n "$(DATA_BUNDLE_DIGEST)" || { echo "DATA_BUNDLE_DIGEST is required"; exit 2; }
+	@SPT_ARTIFACT_CACHE="$(SPT_ARTIFACT_CACHE)" TAG="$(TAG)" DATA_BUNDLE_DIR="$(DATA_BUNDLE_DIR)" DATA_BUNDLE_NAME="$(DATA_BUNDLE_NAME)" DATA_BUNDLE_TAR="$(DATA_BUNDLE_TAR)" DATA_BUNDLE_DIGEST="$(DATA_BUNDLE_DIGEST)" bash scripts/cache-data-bundle.sh info
 
 data-bundle-sanitized: ## Create sanitized advisory/intel data bundle variant
 	@mkdir -p $(DATA_BUNDLE_DIR)
@@ -471,9 +646,15 @@ data-bundle-sanitized: ## Create sanitized advisory/intel data bundle variant
 	    --report-out "$(DATA_BUNDLE_DIR)/$(DATA_SANITIZED_BUNDLE_NAME)-$(TAG).sanitization-report.json"
 	@TAG="$(TAG)" DATA_DIR="$(DATA_SANITIZED_DIR)" DATA_BUNDLE_DIR="$(DATA_BUNDLE_DIR)" DATA_BUNDLE_NAME="$(DATA_SANITIZED_BUNDLE_NAME)" SANITIZED=true DATA_MANIFEST_CHECKSUM_MODE="$(DATA_MANIFEST_CHECKSUM_MODE)" bash scripts/write-data-bundle-manifest.sh
 	@echo "==> Creating sanitized data bundle $(DATA_SANITIZED_TAR)"
-	@tar -cf $(DATA_SANITIZED_TAR) -C $(DATA_SANITIZED_STAGE) sources
+	@tar $(TAR_REPRO_ARGS) -c -C $(DATA_SANITIZED_STAGE) sources | $(GZIP_CMD) $(GZIP_ARGS) > $(DATA_SANITIZED_TAR)
 	@sha256sum $(DATA_SANITIZED_TAR) > $(DATA_SANITIZED_TAR).sha256
 	@cat $(DATA_SANITIZED_TAR).sha256
+
+data-bundle-sign: ## Sign the data bundle manifest with detached GPG signature
+	@TAG="$(TAG)" DATA_BUNDLE_DIR="$(DATA_BUNDLE_DIR)" DATA_BUNDLE_NAME="$(DATA_BUNDLE_NAME)" GPG_KEY="$(GPG_KEY)" bash scripts/sign-data-bundle.sh
+
+data-bundle-verify-signature: ## Verify the data bundle manifest detached GPG signature
+	@TAG="$(TAG)" DATA_BUNDLE_DIR="$(DATA_BUNDLE_DIR)" DATA_BUNDLE_NAME="$(DATA_BUNDLE_NAME)" VERIFY_ONLY=1 bash scripts/sign-data-bundle.sh
 
 data-delta-bundle: ## Create a data delta bundle from prior source checksums
 	@test -n "$(BASE_DATA_SOURCE_SUMS)" || { echo "BASE_DATA_SOURCE_SUMS is required"; exit 2; }
@@ -516,18 +697,15 @@ push-registry: ## Tag and push all images to TARGET_REGISTRY
 clean: clean-bundles ## Remove bundle output (offline-bundles/out and data-bundles/out)
 
 clean-bundles: ## Remove offline-bundles/out and data-bundles/out
-	@echo "==> Removing bundle output directories"
-	@rm -rf $(BUNDLE_DIR) $(DATA_BUNDLE_DIR)
+	@bash scripts/clean-paths.sh "$(BUNDLE_DIR)" "$(DATA_BUNDLE_DIR)"
 
 clean-artifacts: ## Remove smoke and restore artifacts (artifacts/)
-	@echo "==> Removing artifacts/"
-	@rm -rf artifacts/
+	@bash scripts/clean-paths.sh artifacts
 
 clean-data-sources: ## DESTRUCTIVE: Remove data-bundles/sources — requires CONFIRM=yes
 	@test "$(CONFIRM)" = "yes" || \
 	    { printf "ERROR: clean-data-sources deletes all fetched data.\nRun: make clean-data-sources CONFIRM=yes\n" >&2; exit 1; }
-	@echo "==> Removing data-bundles/sources"
-	@rm -rf data-bundles/sources
+	@bash scripts/clean-paths.sh data-bundles/sources
 
 clean-all-generated: ## DESTRUCTIVE: Remove all generated output — requires CONFIRM=yes
 	@test "$(CONFIRM)" = "yes" || \

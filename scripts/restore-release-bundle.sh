@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
-TAG="${TAG:-0.1.1-smoke}"
+TAG="${TAG:-latest}"
 REGISTRY="${REGISTRY:-registry.internal/security-platform}"
 BUNDLE_DIR="${BUNDLE_DIR:-offline-bundles/out}"
 DATA_BUNDLE_DIR="${DATA_BUNDLE_DIR:-data-bundles/out}"
@@ -17,8 +17,8 @@ SKIP_VERIFY_OFFLINE="${SKIP_VERIFY_OFFLINE:-0}"
 SKIP_DATA_EXTRACT="${SKIP_DATA_EXTRACT:-0}"
 RUN_FUNCTIONAL="${RUN_FUNCTIONAL:-0}"
 
-IMAGE_TAR="${BUNDLE_DIR}/spt-bundle-${TAG}.tar"
-DATA_TAR="${DATA_BUNDLE_DIR}/spt-data-bundle-${TAG}.tar"
+IMAGE_TAR="${BUNDLE_DIR}/spt-bundle-${TAG}.tar.gz"
+DATA_TAR="${DATA_BUNDLE_DIR}/spt-data-bundle-${TAG}.tar.gz"
 
 if [[ -t 1 ]]; then
     BOLD="$(printf '\033[1m')"

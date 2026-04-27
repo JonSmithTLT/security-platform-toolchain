@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/JonSmithTLT/security-platform-toolchain/schemas/pipeline.schema.json",
+  "title": "SPT Pipeline",
+  "type": "object",
+  "required": ["version", "pipeline_id", "artifacts_root", "steps"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "type": "integer", "enum": [1] },
+    "pipeline_id": { "type": "string", "minLength": 1 },
+    "request_correlation_id": { "type": "string", "minLength": 1 },
+    "artifacts_root": { "type": "string", "minLength": 1 },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "engine": { "type": "string", "enum": ["docker"] },
+        "default_network": { "type": "string", "enum": ["none", "enabled"] },
+        "registry": { "type": "string" },
+        "tag": { "type": "string" }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/step" }
+    }
+  },
+  "definitions": {
+    "step": {
+      "type": "object",
+      "required": ["id", "image", "command", "mounts", "expected_artifacts"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+$" },
+        "description": { "type": "string" },
+        "depends_on": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "image": { "type": "string", "minLength": 1 },
+        "command": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "required": { "type": "boolean", "default": true },
+        "continue_on_failure": { "type": "boolean", "default": false },
+        "timeout_seconds": { "type": "integer", "minimum": 1 },
+        "network": {
+          "type": "object",
+          "required": ["mode"],
+          "additionalProperties": false,
+          "properties": {
+            "mode": { "type": "string", "enum": ["none", "enabled"] },
+            "reason": { "type": "string" }
+          }
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": { "type": ["string", "number", "boolean"] }
+        },
+        "mounts": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/mount" }
+        },
+        "expected_artifacts": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "schema_validation": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/schema_validation" }
+        }
+      }
+    },
+    "mount": {
+      "type": "object",
+      "required": ["source", "target"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "target": { "type": "string", "pattern": "^/" },
+        "mode": { "type": "string", "enum": ["ro", "rw"], "default": "ro" }
+      }
+    },
+    "schema_validation": {
+      "type": "object",
+      "required": ["path", "schema"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "schema": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

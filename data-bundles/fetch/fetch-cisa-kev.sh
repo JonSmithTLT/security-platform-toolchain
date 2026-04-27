@@ -11,6 +11,10 @@ URL="${CISA_KEV_URL:-https://www.cisa.gov/sites/default/files/feeds/known_exploi
 
 require_cmd curl
 require_cmd sha256sum
+if is_data_current "${OUT_DIR}"; then
+    log "CISA KEV data is current; skipping fetch (FORCE_FETCH=1 to override)"
+    exit 0
+fi
 log "Fetching CISA KEV"
 download "${URL}" "${OUT_DIR}/known_exploited_vulnerabilities.json"
 write_metadata "${OUT_DIR}" "cisa-kev" "${URL}"

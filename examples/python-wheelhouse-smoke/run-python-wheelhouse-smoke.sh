@@ -4,6 +4,7 @@
 # Python 3.11 venv, installs offline, and runs native-import probes.
 
 set -euo pipefail
+umask 0000
 
 REGISTRY="${1:-${REGISTRY:-registry.internal/security-platform}}"
 TAG="${2:-${TAG:-latest}}"

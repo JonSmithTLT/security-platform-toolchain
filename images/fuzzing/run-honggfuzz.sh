@@ -53,7 +53,7 @@ JSON
 }
 
 if ! command -v honggfuzz >/dev/null 2>&1; then
-    msg="honggfuzz support requested, but honggfuzz is not installed in this image build. AFL++ and libFuzzer are the first-class engines for v0.1.1."
+    msg="honggfuzz support requested, but honggfuzz is not installed in this image build. AFL++ and libFuzzer are the first-class engines for v0.1.2."
     log_error "${msg}"
     echo "${msg}" > "${ARTIFACTS_DIR}/logs/fuzzing.log"
     emit_experimental_artifacts "unavailable" "${msg}"
@@ -72,7 +72,7 @@ fi
 
 HONGGFUZZ_PATH="$(command -v honggfuzz)"
 HONGGFUZZ_HELP="$(honggfuzz 2>&1 | head -1 || true)"
-msg="honggfuzz is installed at ${HONGGFUZZ_PATH}; v0.1.1 keeps it experimental and non-gating until artifact collection and replay metadata match AFL++/libFuzzer."
+msg="honggfuzz is installed at ${HONGGFUZZ_PATH}; v0.1.2 keeps it experimental and non-gating until artifact collection and replay metadata match AFL++/libFuzzer."
 log_warn "${msg}"
 {
     printf '%s\n' "${msg}"

@@ -1,20 +1,25 @@
 # Release Notes: v0.1.2
 
-`v0.1.2` focuses on release discipline, offline build efficiency, and Python
-wheelhouse scaffolding. It keeps scanner expansion modest while making the
-existing bundle workflow faster, more inspectable, and easier to resume.
+`v0.1.2` focuses on release discipline, offline build efficiency, and the
+CPython 3.11 wheelhouse/runtime baseline. It keeps scanner expansion modest
+while making the existing bundle workflow faster, smaller, more inspectable,
+and easier to resume.
 
 ## Highlights
 
-- Added CPython 3.11 wheelhouse scaffolding and offline smoke coverage.
+- Added CPython 3.11 wheelhouse and `spt-python-runtime` baseline with offline
+  smoke coverage.
 - Added `make doctor` preflight checks for host tools, Docker/BuildKit, disk
   space, writable output paths, and slow WSL-mounted worktrees.
 - Added `make native-worktree` and `make native-release-smoke` so release builds
   can run from native WSL/Linux storage instead of `/mnt/c`.
-- Made release builds parallel by default through `BUILD_JOBS=4`.
+- Made release builds parallel by default through auto-detected `BUILD_JOBS`.
+- Switched image and data bundle outputs to deterministic gzip-compressed
+  tarballs, reducing release asset part counts substantially.
 - Added release stage ledger records under `artifacts/release-ledger/<TAG>/`.
-- Added resumable release checkpoints with
-  `RESUME_FROM=data-bundle|split|verify|upload`.
+- Added resumable release checkpoints with stage aliases such as
+  `RESUME_FROM=functional-smoke`, `data-bundle`, `split`, `verify-split`, and
+  `upload`.
 - Made GitHub Advisory DB opt-in for normal data fetches; use
   `make data-fetch-full` for full advisory data.
 - Added data manifest checksum modes:

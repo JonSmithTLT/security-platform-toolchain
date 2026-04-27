@@ -1,8 +1,8 @@
 # requirements/py311/data-science-optional.in
 # CPython 3.11 / linux_x86_64 — optional data science stack (large binaries)
 # Build failure does not block required groups.
-numpy
-scipy
-scikit-learn
-pandas
-pyarrow
+numpy<=2.2.6
+scipy<=1.16.3
+scikit-learn<=1.7.2
+pandas<=2.3.2
+pyarrow<=20.0.0

@@ -19,7 +19,7 @@ Windows worktree, sync a fast build copy first:
 
 ```bash
 make native-worktree
-cd ~/spt-build/security-platform-toolchain
+cd ~/spt-native-worktree
 ```
 
 Or run the connected-side release through the native worktree in one step:
@@ -36,6 +36,8 @@ make release-smoke REGISTRY=$REGISTRY TAG=$TAG DATA_DIR=$DATA_DIR
 make container-structure-test REGISTRY=$REGISTRY TAG=$TAG
 make release-evidence REGISTRY=$REGISTRY TAG=$TAG DATA_DIR=$DATA_DIR
 make platform-handoff-bundle REGISTRY=$REGISTRY TAG=$TAG
+make data-bundle-sign TAG=$TAG
+make release-summary TAG=$TAG
 make offline-egress-audit REGISTRY=$REGISTRY TAG=$TAG DATA_DIR=$DATA_DIR
 make release-policy-check REGISTRY=$REGISTRY TAG=$TAG
 ```
@@ -44,8 +46,9 @@ It runs preflight checks, fetches data, runs smoke tests, exports bundles,
 splits large tarballs, verifies checksums, records a release stage ledger under
 `artifacts/release-ledger/$TAG/`, and writes:
 
-Image builds run in parallel by default with `BUILD_JOBS=4`. Override with
-`BUILD_JOBS=<n>` when the build host has more or fewer cores/RAM.
+Image builds run in parallel by default with `BUILD_JOBS=$(nproc)` when
+available. Override with `BUILD_JOBS=<n>` when the build host needs a lower or
+higher concurrency cap.
 
 Data manifests use `DATA_MANIFEST_CHECKSUM_MODE=dataset` by default to avoid
 rehashing every file in many-small-file datasets. Use `full` for release
@@ -77,10 +80,13 @@ stages.
 To resume from a later release stage without rerunning earlier expensive work:
 
 ```bash
-make release-smoke REGISTRY=$REGISTRY TAG=$TAG DATA_DIR=$DATA_DIR RESUME_FROM=split
+make release-smoke REGISTRY=$REGISTRY TAG=$TAG DATA_DIR=$DATA_DIR RESUME_FROM=functional-smoke
 ```
 
-Supported resume points are `data-bundle`, `split`, `verify`, and `upload`.
+Supported resume aliases include `fetch`, `data-smoke`, `build`,
+`verify-offline`, `functional-smoke`, `honggfuzz-smoke`, `image-bundle`,
+`data-bundle`, `data-verify`, `split`, `verify-split`, `verify-data`, and
+`upload`.
 
 The restore-side driver validates the generated assets from the consumer side:
 
@@ -138,11 +144,11 @@ make data-verify TAG=$TAG
 Expected outputs:
 
 ```text
-offline-bundles/out/spt-bundle-$TAG.tar
-offline-bundles/out/spt-bundle-$TAG.tar.sha256
+offline-bundles/out/spt-bundle-$TAG.tar.gz
+offline-bundles/out/spt-bundle-$TAG.tar.gz.sha256
 offline-bundles/out/spt-bundle-$TAG.manifest.json
-data-bundles/out/spt-data-bundle-$TAG.tar
-data-bundles/out/spt-data-bundle-$TAG.tar.sha256
+data-bundles/out/spt-data-bundle-$TAG.tar.gz
+data-bundles/out/spt-data-bundle-$TAG.tar.gz.sha256
 ```
 
 ## 5. Split Large Release Assets
@@ -151,8 +157,8 @@ GitHub Release assets have a size limit. Split any tarball over the limit:
 
 ```bash
 cd offline-bundles/out
-split -b 1900M spt-bundle-$TAG.tar spt-bundle-$TAG.tar.part-
-sha256sum spt-bundle-$TAG.tar.part-* > spt-bundle-$TAG.parts.sha256
+split -b 1900M spt-bundle-$TAG.tar.gz spt-bundle-$TAG.tar.gz.part-
+sha256sum spt-bundle-$TAG.tar.gz.part-* > spt-bundle-$TAG.parts.sha256
 cd ../..
 ```
 
@@ -160,8 +166,8 @@ If the data bundle is over the release asset size limit:
 
 ```bash
 cd data-bundles/out
-split -b 1900M spt-data-bundle-$TAG.tar spt-data-bundle-$TAG.tar.part-
-sha256sum spt-data-bundle-$TAG.tar.part-* > spt-data-bundle-$TAG.parts.sha256
+split -b 1900M spt-data-bundle-$TAG.tar.gz spt-data-bundle-$TAG.tar.gz.part-
+sha256sum spt-data-bundle-$TAG.tar.gz.part-* > spt-data-bundle-$TAG.parts.sha256
 cd ../..
 ```
 
@@ -178,14 +184,14 @@ The manual equivalent is below for debugging.
 Reassemble split parts if applicable:
 
 ```bash
-cat offline-bundles/out/spt-bundle-$TAG.tar.part-* > offline-bundles/out/spt-bundle-$TAG.tar
-sha256sum -c offline-bundles/out/spt-bundle-$TAG.tar.sha256
+cat offline-bundles/out/spt-bundle-$TAG.tar.gz.part-* > offline-bundles/out/spt-bundle-$TAG.tar.gz
+sha256sum -c offline-bundles/out/spt-bundle-$TAG.tar.gz.sha256
 ```
 
 Load the generated image bundle into Docker:
 
 ```bash
-docker load -i offline-bundles/out/spt-bundle-$TAG.tar
+docker load -i offline-bundles/out/spt-bundle-$TAG.tar.gz
 make verify-offline REGISTRY=$REGISTRY TAG=$TAG
 ```
 
@@ -201,17 +207,21 @@ Create or update the GitHub Release:
 
 ```bash
 gh release create v$TAG \
-  offline-bundles/out/spt-bundle-$TAG.tar.part-* \
+  offline-bundles/out/spt-bundle-$TAG.tar.gz.part-* \
   offline-bundles/out/spt-bundle-$TAG.parts.sha256 \
-  offline-bundles/out/spt-bundle-$TAG.tar.sha256 \
+  offline-bundles/out/spt-bundle-$TAG.tar.gz.sha256 \
   offline-bundles/out/spt-bundle-$TAG.manifest.json \
-  data-bundles/out/spt-data-bundle-$TAG.tar \
-  data-bundles/out/spt-data-bundle-$TAG.tar.sha256 \
+  data-bundles/out/spt-data-bundle-$TAG.tar.gz \
+  data-bundles/out/spt-data-bundle-$TAG.tar.gz.sha256 \
   --title "SPT offline bundle $TAG" \
   --notes-file RELEASE_NOTES_0.1.2.md
 ```
 
-Use `gh release upload v$TAG ... --clobber` for replacement uploads.
+Use the upload helper for create/update plus replacement uploads:
+
+```bash
+make release-upload TAG=$TAG
+```
 
 ## 8. Final Sign-Off
 

@@ -2,6 +2,7 @@
 # Collect platform self-scan evidence for a release candidate.
 
 set -euo pipefail
+umask 0000
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"

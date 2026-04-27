@@ -1,0 +1,58 @@
+version: 1
+pipeline_id: re-export-rag
+request_correlation_id: auto
+
+runtime:
+  engine: docker
+  default_network: none
+  registry: registry.internal/security-platform
+  tag: 0.1.2
+
+artifacts_root: ../../artifacts/pipelines/re-export-rag
+
+steps:
+  - id: re-lightweight
+    image: spt-re-lightweight
+    command: ["run-re-lightweight"]
+    required: true
+    mounts:
+      - source: ../..
+        target: /workspace
+        mode: ro
+      - source: ../../artifacts/pipelines/re-export-rag/steps/01-re-lightweight
+        target: /artifacts
+        mode: rw
+    expected_artifacts:
+      - /artifacts/job-report.json
+
+  - id: ghidra-exporter
+    depends_on: [re-lightweight]
+    image: spt-ghidra-exporter
+    command: ["run-ghidra-exporter"]
+    required: false
+    continue_on_failure: true
+    mounts:
+      - source: ../../artifacts/pipelines/re-export-rag/steps/01-re-lightweight
+        target: /workspace
+        mode: ro
+      - source: ../../artifacts/pipelines/re-export-rag/steps/02-ghidra-exporter
+        target: /artifacts
+        mode: rw
+    expected_artifacts:
+      - /artifacts/job-report.json
+
+  - id: rag-indexer
+    depends_on: [ghidra-exporter]
+    image: spt-rag-indexer
+    command: ["run-rag-indexer"]
+    required: false
+    continue_on_failure: true
+    mounts:
+      - source: ../../artifacts/pipelines/re-export-rag/steps/02-ghidra-exporter
+        target: /workspace
+        mode: ro
+      - source: ../../artifacts/pipelines/re-export-rag/steps/03-rag-indexer
+        target: /artifacts
+        mode: rw
+    expected_artifacts:
+      - /artifacts/job-report.json

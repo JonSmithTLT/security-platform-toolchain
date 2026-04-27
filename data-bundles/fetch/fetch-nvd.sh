@@ -16,6 +16,11 @@ require_cmd sha256sum
 require_cmd python3
 mkdir -p "${OUT_DIR}"
 
+if is_data_current "${OUT_DIR}"; then
+    log "NVD CVE data is current; skipping fetch (FORCE_FETCH=1 to override)"
+    exit 0
+fi
+
 if [[ "${NVD_INCREMENTAL}" == "1" ]]; then
     last_start="${NVD_LAST_MOD_START_DATE:-}"
     if [[ -z "${last_start}" && -f "${OUT_DIR}/metadata.json" ]]; then
@@ -43,7 +48,13 @@ PY
         start_index=0
         results_per_page="${NVD_RESULTS_PER_PAGE:-2000}"
         total_results=1
-        curl_args=(-fsSL --retry 3 --retry-delay 2)
+        curl_args=(
+            -fsSL
+            --retry "${FETCH_CURL_RETRIES:-3}"
+            --retry-delay "${FETCH_CURL_RETRY_DELAY:-2}"
+            --connect-timeout "${FETCH_CURL_CONNECT_TIMEOUT:-30}"
+            --max-time "${FETCH_CURL_MAX_TIME:-900}"
+        )
         if [[ -n "${NVD_API_KEY:-}" ]]; then
             curl_args+=(-H "apiKey: ${NVD_API_KEY}")
         fi
@@ -64,6 +75,7 @@ print(f"{base}?{query}")
 PY
 )"
             page_file="${OUT_DIR}/nvd-incremental-${stamp}-${start_index}.json"
+            log "Fetching NVD incremental page startIndex=${start_index} resultsPerPage=${results_per_page}"
             curl "${curl_args[@]}" "${page_url}" -o "${page_file}"
             cat "${page_file}" >> "${tmp_out}"
             printf '\n' >> "${tmp_out}"

@@ -77,11 +77,11 @@ def add_bundle_manifests(
 
     manifest_sources = [
         (offline_bundle_dir / f"spt-bundle-{tag}.manifest.json", manifests_dir / "image-bundle.manifest.json", True),
-        (offline_bundle_dir / f"spt-bundle-{tag}.tar.sha256", manifests_dir / "image-bundle.tar.sha256", False),
+        (offline_bundle_dir / f"spt-bundle-{tag}.tar.gz.sha256", manifests_dir / "image-bundle.tar.gz.sha256", False),
         (data_bundle_dir / f"spt-data-bundle-{tag}.manifest.json", manifests_dir / "data-bundle.manifest.json", False),
         (data_bundle_dir / f"spt-data-bundle-{tag}.source-checksums.sha256", manifests_dir / "data-source-checksums.sha256", False),
         (data_bundle_dir / f"spt-data-delta-{tag}.manifest.json", manifests_dir / "data-delta.manifest.json", False),
-        (data_bundle_dir / f"spt-data-delta-{tag}.tar.sha256", manifests_dir / "data-delta.tar.sha256", False),
+        (data_bundle_dir / f"spt-data-delta-{tag}.tar.gz.sha256", manifests_dir / "data-delta.tar.gz.sha256", False),
     ]
 
     output_paths: list[str] = []

@@ -131,7 +131,15 @@ WORKSPACE=/path/to/project docker-compose up
 
 ```bash
 make bundle TAG=1.2.3
-# → offline-bundles/out/spt-bundle-1.2.3.tar
+# -> offline-bundles/out/spt-bundle-1.2.3.tar.gz
+```
+
+After a bundle exists, cache its tarball, checksum, manifest, and split parts
+by the tarball SHA-256 so another release run can restore the exact artifacts:
+
+```bash
+make image-bundle-cache-store TAG=1.2.3
+make image-bundle-cache-restore TAG=1.2.3 IMAGE_BUNDLE_DIGEST=sha256:<digest>
 ```
 
 ### Publish images to one registry namespace
@@ -207,8 +215,11 @@ then bundle it separately from the Docker images:
 make data-fetch TAG=2026-04-25
 make data-bundle TAG=2026-04-25
 make data-verify TAG=2026-04-25
+make data-bundle-cache-store TAG=2026-04-25
 make platform-handoff-bundle TAG=2026-04-25
+make release-sboms-cache-store TAG=2026-04-25
 make cve-index TAG=2026-04-25 DATA_DIR=data-bundles/sources
+make cve-index-cache-store
 make cve-index-smoke TAG=2026-04-25
 make tool-catalog TAG=2026-04-25
 make candidate-correlations
@@ -218,6 +229,10 @@ docker-compose run --rm dependency-review
 Use this for OSV databases, CWE, CAPEC, MITRE ATT&CK, CVE/NVD, CISA KEV,
 EPSS, advisory databases, YARA rules, Semgrep rules, CodeQL packs, and vendor
 advisories.
+
+`make data-bundle-cache-store` caches the data bundle tarball, checksum,
+manifest, source checksums, and split parts by bundle SHA-256. Restore with
+`make data-bundle-cache-restore DATA_BUNDLE_DIGEST=sha256:<digest>`.
 
 Normal users can import and run the image bundle without importing the data
 bundle. The data bundle is optional, but required for full offline
@@ -229,7 +244,7 @@ indicators, or scanner fixtures. See [`SECURITY_NOTES.md`](SECURITY_NOTES.md)
 before distributing the data bundle.
 
 The generic archive produced by this repo is named
-`spt-data-bundle-<TAG>.tar`. The names below are optional release aliases if you
+`spt-data-bundle-<TAG>.tar.gz`. The names below are optional release aliases if you
 choose to publish explicit full/sanitized variants:
 
 | Variant | Description |
@@ -242,9 +257,53 @@ tarball under `artifacts/platform-handoff/`, packaging normalized findings,
 candidate correlations (when present), release evidence, and bundle manifests
 into one stable handoff layout.
 
+`make release-sboms-cache-store` caches generated release SBOM evidence by tree
+digest. Restore with
+`make release-sboms-cache-restore RELEASE_SBOMS_DIGEST=sha256:<digest>`.
+
 `make cve-index-smoke` exercises the offline CVE index with a fixture lockfile
 and emits `artifacts/cve-index-smoke/enrichment-candidate.json` containing CVE,
 aliases, CVSS, EPSS, KEV, affected ranges, and source records.
+
+`make cve-index-cache-store` caches the generated SQLite index by SHA-256.
+Restore with `make cve-index-cache-restore CVE_INDEX_DIGEST=sha256:<digest>`.
+
+Cache maintenance targets are available for release hosts that accumulate
+large artifacts over time:
+
+```bash
+make artifact-cache-list
+make artifact-cache-size
+make artifact-cache-verify
+make artifact-cache-prune ARTIFACT_CACHE_PRUNE_DAYS=30 CONFIRM=yes
+```
+
+Large data fetchers also reuse the artifact cache. GitHub Advisory DB is keyed
+by `GHSA_REPO_URL`/`GHSA_REF`, and OSV DB is keyed by `OSV_FETCH_MODE`,
+`OSV_ECOSYSTEMS`, and `OSV_BUCKET_URL`. Set `FORCE_FETCH=1` to bypass cached
+datasets.
+
+Release publishing helpers:
+
+```bash
+make data-bundle-sign TAG=2026-04-25 GPG_KEY=<key-id>
+make data-bundle-verify-signature TAG=2026-04-25
+make release-summary TAG=2026-04-25
+make release-upload TAG=2026-04-25
+```
+
+`release-upload` creates or updates `v<TAG>` and uploads assets from
+`spt-release-<TAG>.upload-assets.txt` with `--clobber`.
+
+BuildKit registry cache is opt-in for CI or multi-host release builders:
+
+```bash
+make registry-cache-build REGISTRY=registry.internal/security-platform TAG=2026-04-25
+```
+
+This switches builds to `docker buildx build --load` and uses per-image
+`--cache-from/--cache-to type=registry` refs under
+`REGISTRY_CACHE_REF_PREFIX`.
 
 `make tool-catalog` generates a descriptive MCP/tool catalog under
 `artifacts/tool-catalog/` from wrapper defaults, mount-path hints, schemas, and
@@ -254,9 +313,30 @@ MCP example metadata.
 and emits per-tool `candidate-correlations.json` artifacts under
 `artifacts/results/<tool>/normalized/`.
 
+`make vulnerability-enrichments` reads normalized `tool-result.json` files,
+looks up CVEs in the offline CVE index, and emits non-authoritative
+`vulnerability-enrichments.json` context with CVSS, EPSS, KEV, CWE, and aliases.
+
 `spt-dependency-review` consumes a lockfile/SBOM and an offline CVE index
 (`CVE_INDEX_DB`) and emits normalized findings plus enrichment candidates under
 `artifacts/results/dependency-review/`.
+
+### Run a thin local pipeline
+
+`spt-pipeline` is a small local runner for repeatable container workflows. It
+parses YAML, runs declared containers, passes artifact directories, checks
+expected artifacts, validates declared JSON schemas, and emits
+`pipeline-report.json`. It does not create canonical findings or write platform
+state.
+
+```bash
+make pipeline-validate PIPELINE_FILE=examples/pipelines/pipeline-smoke.yaml
+make pipeline-dry-run PIPELINE_FILE=examples/pipelines/pipeline-smoke.yaml
+make pipeline-run-sample
+```
+
+Pipeline steps use Docker with `--network none` by default. Any network-enabled
+step must set an explicit reason in the YAML.
 
 Current release notes:
 
@@ -313,7 +393,7 @@ analysts and agentic workflows.
 | Image | Responsibility |
 |-------|----------------|
 | `harness-builder` | Generate, build, validate, smoke, and package harness skeletons before fuzzing jobs. |
-| `fuzzing` | Run coverage-guided compiled/in-process harness fuzzing with AFL++ and libFuzzer. `honggfuzz` has experimental hooks in v0.1.1 and is non-gating. |
+| `fuzzing` | Run coverage-guided compiled/in-process harness fuzzing with AFL++ and libFuzzer. `honggfuzz` has experimental hooks in v0.1.2 and is non-gating. |
 | `protocol-fuzzing` | Run boofuzz/network/session fuzzing and capture failing protocol cases. |
 | `crash-triage` | Explain, deduplicate, symbolize, classify, and reproduce crash evidence. |
 | `corpus-tools` | Minimize, merge, deduplicate, summarize, and promote corpora. |

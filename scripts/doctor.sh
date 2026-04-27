@@ -151,10 +151,10 @@ check_git_state() {
         return
     fi
 
-    if [[ -n "$(git status --porcelain)" ]]; then
-        warn "Git worktree has local changes; release evidence should record this"
+    if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
+        warn "Git worktree has uncommitted changes to tracked files; release evidence should record this"
     else
-        pass "Git worktree is clean"
+        pass "Git worktree is clean (intentionally untracked files ignored)"
     fi
 }
 
@@ -187,6 +187,23 @@ if [[ -d "${DATA_DIR}" ]]; then
 else
     warn "data directory does not exist yet: ${DATA_DIR}"
 fi
+
+# Warn if DATA_DIR is on a slow filesystem — GitHub Advisory DB and NVD write
+# hundreds of thousands of small files; NTFS via WSL is ~10-50x slower than
+# a native Linux filesystem for this workload.
+_data_dir_abs="$(cd "${DATA_DIR}" 2>/dev/null && pwd -P || realpath -m "${DATA_DIR}" 2>/dev/null || printf '%s' "${DATA_DIR}")"
+case "${_data_dir_abs}" in
+    /mnt/[a-zA-Z]/*|/run/desktop/mnt/host/*|/[a-zA-Z]/Users/*|*OneDrive*)
+        if [[ "${ALLOW_SLOW_WORKTREE}" == "1" ]]; then
+            warn "DATA_DIR is on a slow/NTFS path (${_data_dir_abs}); advisory DB fetches will be slow — consider DATA_DIR=~/spt-data/sources"
+        else
+            fail "DATA_DIR is on a slow/NTFS path (${_data_dir_abs}); set DATA_DIR to a native Linux path (e.g. ~/spt-data/sources) or set ALLOW_SLOW_WORKTREE=1"
+        fi
+        ;;
+    *)
+        pass "DATA_DIR path looks suitable: ${_data_dir_abs}"
+        ;;
+esac
 
 check_free_space "."
 check_free_space "${BUNDLE_DIR}"

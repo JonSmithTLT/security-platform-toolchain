@@ -2,7 +2,7 @@
 # CPython 3.11 / linux_x86_64 — FastAPI service layer (future migration)
 fastapi
 starlette
-uvicorn[standard]
+uvicorn
 pydantic
 pydantic-core
 pydantic-settings

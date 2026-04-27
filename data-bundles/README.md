@@ -167,6 +167,15 @@ It joins NVD CVSS/CWE metadata, EPSS scores, CISA KEV status, OSV aliases and
 affected package records, and optional GitHub Advisory Database records. The
 index is an enrichment/correlation aid, not the canonical finding model.
 
+To expose that index to local analyst tools without changing the finding model:
+
+```bash
+make cve-api CVE_INDEX_OUT=data-bundles/out/spt-cve-index.sqlite
+```
+
+The API opens SQLite read-only and serves `/healthz`, `/metadata`,
+`/cves/{cve}`, `/search?q=...`, and `/packages?name=...`.
+
 ## OSV Offline Cache
 
 The OSV fetcher downloads OSV ecosystem zip databases directly into the cache

@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
-TAG="${TAG:-0.1.1-smoke}"
+TAG="${TAG:-latest}"
 REGISTRY="${REGISTRY:-registry.internal/security-platform}"
 DATA_DIR="${DATA_DIR:-data-bundles/sources}"
 BUNDLE_DIR="${BUNDLE_DIR:-offline-bundles/out}"
@@ -16,13 +16,13 @@ SKIP_FETCH="${SKIP_FETCH:-0}"
 SKIP_BUILD="${SKIP_BUILD:-0}"
 SKIP_FUNCTIONAL="${SKIP_FUNCTIONAL:-0}"
 SKIP_BUNDLE="${SKIP_BUNDLE:-0}"
-SKIP_HONGGFUZZ="${SKIP_HONGGFUZZ:-0}"
+SKIP_HONGGFUZZ="${SKIP_HONGGFUZZ:-1}"
 SKIP_DOCTOR="${SKIP_DOCTOR:-0}"
 RESUME_FROM="${RESUME_FROM:-}"
 BUILD_JOBS="${BUILD_JOBS:-4}"
 
-IMAGE_TAR="${BUNDLE_DIR}/spt-bundle-${TAG}.tar"
-DATA_TAR="${DATA_BUNDLE_DIR}/spt-data-bundle-${TAG}.tar"
+IMAGE_TAR="${BUNDLE_DIR}/spt-bundle-${TAG}.tar.gz"
+DATA_TAR="${DATA_BUNDLE_DIR}/spt-data-bundle-${TAG}.tar.gz"
 UPLOAD_LIST="${BUNDLE_DIR}/spt-release-${TAG}.upload-assets.txt"
 UPLOAD_CMD="${BUNDLE_DIR}/spt-release-${TAG}.gh-upload.sh"
 RELEASE_LEDGER="${RELEASE_LEDGER:-artifacts/release-ledger/${TAG}/release-stages.jsonl}"
@@ -63,14 +63,44 @@ normalize_resume_from() {
         ""|"none")
             printf ''
             ;;
+        doctor|"preflight doctor")
+            printf 'preflight doctor'
+            ;;
+        fetch|"data-fetch"|"data fetch")
+            printf 'data fetch'
+            ;;
+        smoke|"data-smoke"|"data smoke")
+            printf 'data smoke'
+            ;;
+        build|"image-build"|"image build")
+            printf 'image build'
+            ;;
+        offline|"verify-offline"|"verify offline")
+            printf 'verify offline'
+            ;;
+        functional|"functional-smoke"|"functional smoke")
+            printf 'functional smoke'
+            ;;
+        honggfuzz|"honggfuzz-smoke"|"honggfuzz smoke")
+            printf 'honggfuzz smoke'
+            ;;
+        bundle|"image-bundle"|"image bundle")
+            printf 'image bundle'
+            ;;
         data-bundle|"data bundle")
             printf 'data bundle'
+            ;;
+        data-verify|"data verify")
+            printf 'data verify'
             ;;
         split|"split bundles")
             printf 'split bundles'
             ;;
-        verify|"verify split bundles")
+        verify|"verify-split"|"verify split bundles")
             printf 'verify split bundles'
+            ;;
+        verify-data|"verify data bundle")
+            printf 'verify data bundle'
             ;;
         upload|"write upload manifest")
             printf 'write upload manifest'
@@ -104,7 +134,7 @@ stage_rank() {
 RESUME_STAGE="$(normalize_resume_from "${RESUME_FROM}")"
 if [[ "${RESUME_STAGE}" == "unknown" ]]; then
     printf 'ERROR: unknown RESUME_FROM=%s\n' "${RESUME_FROM}" >&2
-    printf 'Valid values: data-bundle, split, verify, upload\n' >&2
+    printf 'Valid values: fetch, data-smoke, build, verify-offline, functional-smoke, honggfuzz-smoke, image-bundle, data-bundle, data-verify, split, verify-split, verify-data, upload\n' >&2
     exit 2
 fi
 RESUME_RANK="$(stage_rank "${RESUME_STAGE}")"
@@ -206,33 +236,57 @@ run() {
 split_bundle() {
     local tar_path="$1"
     local parts_sum="$2"
+    local split_bytes tar_bytes
     rm -f "${tar_path}.part-"* "${parts_sum}"
+
+    split_bytes="$(numfmt --from=iec "${SPLIT_SIZE}")"
+    tar_bytes="$(stat -c '%s' "${tar_path}")"
+    if (( tar_bytes <= split_bytes )); then
+        printf '==> %s is %s bytes; below SPLIT_SIZE=%s, keeping as a single asset\n' "${tar_path}" "${tar_bytes}" "${SPLIT_SIZE}"
+        return 0
+    fi
+
+    printf '==> %s is %s bytes; splitting at SPLIT_SIZE=%s\n' "${tar_path}" "${tar_bytes}" "${SPLIT_SIZE}"
     split -b "${SPLIT_SIZE}" "${tar_path}" "${tar_path}.part-"
     sha256sum "${tar_path}".part-* > "${parts_sum}"
+}
+
+append_bundle_upload_assets() {
+    local tar_path="$1"
+    local parts_sum="$2"
+
+    if compgen -G "${tar_path}.part-*" >/dev/null; then
+        for part in "${tar_path}".part-*; do
+            printf '%s\n' "${part}" >> "${UPLOAD_LIST}"
+        done
+        [[ -f "${parts_sum}" ]] && printf '%s\n' "${parts_sum}" >> "${UPLOAD_LIST}"
+    else
+        printf '%s\n' "${tar_path}" >> "${UPLOAD_LIST}"
+    fi
+    printf '%s\n' "${tar_path}.sha256" >> "${UPLOAD_LIST}"
 }
 
 write_upload_files() {
     mkdir -p "${BUNDLE_DIR}" "${DATA_BUNDLE_DIR}"
     : > "${UPLOAD_LIST}"
 
+    append_bundle_upload_assets "${IMAGE_TAR}" "${BUNDLE_DIR}/spt-bundle-${TAG}.parts.sha256"
+    printf '%s\n' "${BUNDLE_DIR}/spt-bundle-${TAG}.manifest.json" >> "${UPLOAD_LIST}"
+    append_bundle_upload_assets "${DATA_TAR}" "${DATA_BUNDLE_DIR}/spt-data-bundle-${TAG}.parts.sha256"
+    printf '%s\n' "${DATA_BUNDLE_DIR}/spt-data-bundle-${TAG}.manifest.json" >> "${UPLOAD_LIST}"
+    printf '%s\n' "${DATA_BUNDLE_DIR}/spt-data-bundle-${TAG}.source-checksums.sha256" >> "${UPLOAD_LIST}"
+
     for path in \
-        "${IMAGE_TAR}".part-* \
-        "${BUNDLE_DIR}/spt-bundle-${TAG}.parts.sha256" \
-        "${IMAGE_TAR}.sha256" \
-        "${BUNDLE_DIR}/spt-bundle-${TAG}.manifest.json" \
-        "${DATA_TAR}".part-* \
-        "${DATA_BUNDLE_DIR}/spt-data-bundle-${TAG}.parts.sha256" \
-        "${DATA_TAR}.sha256" \
-        "${DATA_BUNDLE_DIR}/spt-data-bundle-${TAG}.manifest.json" \
-        "${DATA_BUNDLE_DIR}/spt-data-bundle-${TAG}.source-checksums.sha256" \
         RELEASE_CHECKLIST.md \
-        RELEASE_NOTES_0.1.1-smoke.md \
+        "RELEASE_NOTES_${TAG}.md" \
         KNOWN_LIMITATIONS.md \
         SECURITY_NOTES.md; do
-        if [[ -e "${path}" ]]; then
-            printf '%s\n' "${path}" >> "${UPLOAD_LIST}"
-        fi
+        printf '%s\n' "${path}" >> "${UPLOAD_LIST}"
     done
+    while IFS= read -r path; do
+        [[ -e "${path}" ]] && printf '%s\n' "${path}"
+    done < "${UPLOAD_LIST}" > "${UPLOAD_LIST}.tmp"
+    mv "${UPLOAD_LIST}.tmp" "${UPLOAD_LIST}"
 
     cat > "${UPLOAD_CMD}" <<EOF
 #!/usr/bin/env bash
@@ -288,7 +342,7 @@ if should_skip_for_resume "image build"; then
 elif [[ "${SKIP_BUILD}" == "1" ]]; then
     skip_stage "image build" "SKIP_BUILD=1"
 else
-    run_stage "image build" make -j "${BUILD_JOBS}" build-all REGISTRY="${REGISTRY}" TAG="${TAG}"
+    run_stage "image build" make -j "${BUILD_JOBS}" build-all REGISTRY="${REGISTRY}" TAG="${TAG}" DATA_DIR="${DATA_DIR}"
 fi
 
 if should_skip_for_resume "verify offline"; then
@@ -397,6 +451,6 @@ printf '\nRelease assets listed in: %s\n' "${UPLOAD_LIST}"
 printf 'GitHub upload helper:   %s\n' "${UPLOAD_CMD}"
 printf 'Release stage ledger:  %s\n' "${RELEASE_LEDGER}"
 printf '\nCreate release if needed:\n'
-printf '  gh release create "v%s" --title "SPT offline bundle %s" --notes-file RELEASE_NOTES_0.1.1-smoke.md\n' "${TAG}" "${TAG}"
+printf '  gh release create "v%s" --title "SPT offline bundle %s" --notes-file RELEASE_NOTES_%s.md\n' "${TAG}" "${TAG}" "${TAG}"
 printf '\nUpload or replace assets:\n'
 printf '  %s\n' "${UPLOAD_CMD}"

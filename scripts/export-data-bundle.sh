@@ -11,10 +11,11 @@ SPLIT_SIZE="${SPLIT_SIZE:-1900M}"
 SANITIZED="${SANITIZED:-false}"
 DATA_BUNDLE_NAME="${DATA_BUNDLE_NAME:-spt-data-bundle}"
 SKIP_FETCH="${SKIP_FETCH:-0}"
+SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct 2>/dev/null || date +%s)}"
 if [[ "${SANITIZED}" == "true" ]]; then
     DATA_BUNDLE_NAME="${DATA_BUNDLE_NAME:-spt-data-sanitized-bundle}"
 fi
-TAR="${DATA_BUNDLE_DIR}/${DATA_BUNDLE_NAME}-${TAG}.tar"
+TAR="${DATA_BUNDLE_DIR}/${DATA_BUNDLE_NAME}-${TAG}.tar.gz"
 MANIFEST="${DATA_BUNDLE_DIR}/${DATA_BUNDLE_NAME}-${TAG}.manifest.json"
 SOURCE_SUMS="${DATA_BUNDLE_DIR}/${DATA_BUNDLE_NAME}-${TAG}.source-checksums.sha256"
 
@@ -23,9 +24,9 @@ if [[ "${SKIP_FETCH}" != "1" ]]; then
 fi
 
 if [[ "${SANITIZED}" == "true" ]]; then
-    make data-bundle-sanitized TAG="${TAG}" DATA_DIR="${DATA_DIR}" DATA_BUNDLE_DIR="${DATA_BUNDLE_DIR}"
+    make data-bundle-sanitized TAG="${TAG}" DATA_DIR="${DATA_DIR}" DATA_BUNDLE_DIR="${DATA_BUNDLE_DIR}" SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH}"
 else
-    make data-bundle TAG="${TAG}" DATA_DIR="${DATA_DIR}" DATA_BUNDLE_DIR="${DATA_BUNDLE_DIR}" DATA_BUNDLE_NAME="${DATA_BUNDLE_NAME}"
+    make data-bundle TAG="${TAG}" DATA_DIR="${DATA_DIR}" DATA_BUNDLE_DIR="${DATA_BUNDLE_DIR}" DATA_BUNDLE_NAME="${DATA_BUNDLE_NAME}" SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH}"
 fi
 
 rm -f "${TAR}.part-"*

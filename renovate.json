@@ -1,0 +1,147 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "labels": [
+    "dependencies",
+    "release-review-required"
+  ],
+  "dependencyDashboard": true,
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "automerge": false,
+  "enabledManagers": [
+    "dockerfile",
+    "github-actions",
+    "pip_requirements",
+    "custom.regex"
+  ],
+  "pip_requirements": {
+    "managerFilePatterns": [
+      "/(^|/)requirements/.+\\.(in|txt|lock)$/"
+    ]
+  },
+  "packageRules": [
+    {
+      "matchManagers": [
+        "dockerfile",
+        "custom.regex"
+      ],
+      "addLabels": [
+        "offline-image-input"
+      ]
+    },
+    {
+      "matchManagers": [
+        "pip_requirements"
+      ],
+      "addLabels": [
+        "python-wheelhouse"
+      ]
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^Makefile$"
+      ],
+      "matchStrings": [
+        "GHIDRA_VERSION\\s*\\?=\\s*(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "NationalSecurityAgency/ghidra",
+      "datasourceTemplate": "github-releases"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^Makefile$"
+      ],
+      "matchStrings": [
+        "GHIDRA_MCP_REF\\s*\\?=\\s*(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "bethington/ghidra-mcp",
+      "datasourceTemplate": "github-tags"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^Makefile$",
+        "^images/fuzzing/Dockerfile$"
+      ],
+      "matchStrings": [
+        "HONGGFUZZ_REF\\s*\\?=\\s*(?<currentValue>\\S+)",
+        "ARG HONGGFUZZ_REF=(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "google/honggfuzz",
+      "datasourceTemplate": "github-tags"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^images/.+/Dockerfile$"
+      ],
+      "matchStrings": [
+        "ARG CODEQL_VERSION=(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "github/codeql-action",
+      "datasourceTemplate": "github-releases"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^images/.+/Dockerfile$"
+      ],
+      "matchStrings": [
+        "ARG GITLEAKS_VERSION=(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "gitleaks/gitleaks",
+      "datasourceTemplate": "github-releases"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^images/.+/Dockerfile$"
+      ],
+      "matchStrings": [
+        "ARG GRYPE_VERSION=(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "anchore/grype",
+      "datasourceTemplate": "github-releases"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^images/.+/Dockerfile$"
+      ],
+      "matchStrings": [
+        "ARG OSV_SCANNER_VERSION=(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "google/osv-scanner",
+      "datasourceTemplate": "github-releases"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^images/.+/Dockerfile$"
+      ],
+      "matchStrings": [
+        "ARG SYFT_VERSION=(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "anchore/syft",
+      "datasourceTemplate": "github-releases"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^images/.+/Dockerfile$"
+      ],
+      "matchStrings": [
+        "ARG TRUFFLEHOG_VERSION=(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "trufflesecurity/trufflehog",
+      "datasourceTemplate": "github-releases"
+    }
+  ]
+}

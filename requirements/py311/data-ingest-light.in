@@ -4,3 +4,6 @@ sqlalchemy
 alembic
 sqlite-utils
 networkx
+# Keep the py311 manylinux_2_17 wheelhouse binary-only. Newer greenlet releases
+# can be selected before compatible wheels are available for this target.
+greenlet<=3.2.5

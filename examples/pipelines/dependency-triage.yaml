@@ -1,0 +1,59 @@
+version: 1
+pipeline_id: dependency-triage
+request_correlation_id: auto
+
+runtime:
+  engine: docker
+  default_network: none
+  registry: registry.internal/security-platform
+  tag: 0.1.2
+
+artifacts_root: ../../artifacts/pipelines/dependency-triage
+
+steps:
+  - id: dependency-review
+    image: spt-dependency-review
+    command: ["run-dependency-review"]
+    required: true
+    env:
+      TARGET_REPO: /workspace
+      DEPENDENCY_INPUT: /workspace/requirements.txt
+      CVE_INDEX_DB: /data/spt-cve-index.sqlite
+    mounts:
+      - source: ../../examples/cve-index-smoke
+        target: /workspace
+        mode: ro
+      - source: ../../data-bundles/out
+        target: /data
+        mode: ro
+      - source: ../../artifacts/pipelines/dependency-triage/steps/01-dependency-review
+        target: /artifacts
+        mode: rw
+    expected_artifacts:
+      - /artifacts/job-report.json
+      - /artifacts/results/dependency-review/tool-result.json
+      - /artifacts/results/dependency-review/raw/enrichment-candidates.json
+    schema_validation:
+      - path: /artifacts/results/dependency-review/tool-result.json
+        schema: schemas/tool-result.schema.json
+
+  - id: schema-validator
+    depends_on: [dependency-review]
+    image: spt-schema-validator
+    command: ["run-schema-validator"]
+    required: true
+    env:
+      TARGET_DIR: /input
+    mounts:
+      - source: ../../artifacts/pipelines/dependency-triage/steps/01-dependency-review
+        target: /input
+        mode: ro
+      - source: ../../artifacts/pipelines/dependency-triage/steps/02-schema-validator
+        target: /artifacts
+        mode: rw
+    expected_artifacts:
+      - /artifacts/job-report.json
+      - /artifacts/results/schema-validator/tool-result.json
+    schema_validation:
+      - path: /artifacts/results/schema-validator/tool-result.json
+        schema: schemas/tool-result.schema.json

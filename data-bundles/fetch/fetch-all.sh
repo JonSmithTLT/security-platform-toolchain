@@ -27,6 +27,7 @@ FETCHERS=(
 )
 
 mkdir -p "${OUT_ROOT}"
+OUT_ROOT="$(cd "${OUT_ROOT}" && pwd)"   # docker run -v requires absolute paths
 for fetcher in "${FETCHERS[@]}"; do
     "${SCRIPT_DIR}/${fetcher}" "${OUT_ROOT}"
 done

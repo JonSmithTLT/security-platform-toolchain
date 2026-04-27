@@ -1,0 +1,42 @@
+version: 1
+pipeline_id: protocol-fuzzing
+request_correlation_id: auto
+
+runtime:
+  engine: docker
+  default_network: none
+  registry: registry.internal/security-platform
+  tag: 0.1.2
+
+artifacts_root: ../../artifacts/pipelines/protocol-fuzzing
+
+steps:
+  - id: protocol-fuzzing
+    image: spt-protocol-fuzzing
+    command: ["run-protocol-fuzzing"]
+    required: true
+    mounts:
+      - source: ../..
+        target: /workspace
+        mode: ro
+      - source: ../../artifacts/pipelines/protocol-fuzzing/steps/01-protocol-fuzzing
+        target: /artifacts
+        mode: rw
+    expected_artifacts:
+      - /artifacts/job-report.json
+
+  - id: crash-triage
+    depends_on: [protocol-fuzzing]
+    image: spt-crash-triage
+    command: ["run-crash-triage"]
+    required: false
+    continue_on_failure: true
+    mounts:
+      - source: ../../artifacts/pipelines/protocol-fuzzing/steps/01-protocol-fuzzing
+        target: /workspace
+        mode: ro
+      - source: ../../artifacts/pipelines/protocol-fuzzing/steps/02-crash-triage
+        target: /artifacts
+        mode: rw
+    expected_artifacts:
+      - /artifacts/job-report.json

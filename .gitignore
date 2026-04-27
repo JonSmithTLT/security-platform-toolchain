@@ -81,3 +81,6 @@ artifacts-smoke/
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Personal local Make overrides — never commit
+Makefile.local

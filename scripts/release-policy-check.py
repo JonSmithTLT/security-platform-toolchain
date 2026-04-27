@@ -32,6 +32,7 @@ def main() -> int:
     parser.add_argument("--tag", required=True)
     parser.add_argument("--images", required=True)
     parser.add_argument("--max-image-mib", type=int, default=4096)
+    parser.add_argument("--require-image-signatures", choices=("0", "1"), default="0")
     parser.add_argument("--allow-failed-evidence", action="store_true")
     args = parser.parse_args()
 
@@ -78,12 +79,43 @@ def main() -> int:
         if size > max_bytes:
             failures.append(f"image exceeds max size: {image_ref} size={size} max={max_bytes}")
 
+    provenance_dir = evidence_dir / "provenance"
+    missing_provenance = [
+        f"spt-{image}.provenance.json"
+        for image in images
+        if not (provenance_dir / f"spt-{image}.provenance.json").exists()
+    ]
+    if missing_provenance:
+        warnings.append(f"missing provenance predicates: {', '.join(missing_provenance)}")
+
+    if args.require_image_signatures == "1":
+        cosign_events = evidence_dir / "signatures" / "cosign-events.jsonl"
+        if not cosign_events.exists():
+            failures.append(f"missing cosign signature event log: {cosign_events}")
+        else:
+            signed = set()
+            failed = []
+            for line in cosign_events.read_text(encoding="utf-8").splitlines():
+                if not line.strip():
+                    continue
+                event = json.loads(line)
+                if event.get("action") == "sign" and event.get("status") == "success":
+                    signed.add(str(event.get("image", "")).rsplit("/spt-", 1)[-1].rsplit(":", 1)[0])
+                if event.get("status") == "failed":
+                    failed.append(str(event.get("image", "")))
+            missing = [image for image in images if image not in signed]
+            if missing:
+                failures.append(f"missing successful cosign signatures: {', '.join(missing)}")
+            if failed:
+                failures.append(f"failed cosign signature events: {', '.join(failed)}")
+
     out = {
         "schema_version": "1.0.0",
         "status": "failed" if failures else "passed",
         "failures": failures,
         "warnings": warnings,
         "max_image_mib": args.max_image_mib,
+        "require_image_signatures": args.require_image_signatures == "1",
     }
     out_path = evidence_dir / "release-policy-result.json"
     md_path = evidence_dir / "release-policy-result.md"

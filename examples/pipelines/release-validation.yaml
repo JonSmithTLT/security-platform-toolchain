@@ -1,0 +1,30 @@
+version: 1
+pipeline_id: release-validation
+request_correlation_id: auto
+
+runtime:
+  engine: docker
+  default_network: none
+  registry: registry.internal/security-platform
+  tag: 0.1.2
+
+artifacts_root: ../../artifacts/pipelines/release-validation
+
+steps:
+  - id: schema-validation
+    description: Validate existing release evidence artifacts without assigning platform authority.
+    image: spt-schema-validator
+    command:
+      - run-schema-validator
+    required: true
+    env:
+      TARGET_DIR: /workspace/artifacts/release-evidence
+    mounts:
+      - source: ../..
+        target: /workspace
+        mode: ro
+      - source: ../../artifacts/pipelines/release-validation/steps/01-schema-validation
+        target: /artifacts
+        mode: rw
+    expected_artifacts:
+      - /artifacts/job-report.json

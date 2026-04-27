@@ -14,6 +14,8 @@ USE_DOCKER="${CODEQL_USE_DOCKER:-auto}"
 
 require_cmd sha256sum
 mkdir -p "${OUT_DIR}"
+OUT_DIR="$(cd "${OUT_DIR}" && pwd)"    # normalize to absolute — docker -v rejects relative paths
+chmod 777 "${OUT_DIR}"                 # spt user (UID 1001) inside container must be able to write
 if [[ -z "${PACKS}" ]]; then
     warn "CODEQL_PACKS is not set; copying repo-local queries"
     mkdir -p "${OUT_DIR}/local"
@@ -26,7 +28,7 @@ if [[ "${USE_DOCKER}" != "0" ]] && command -v docker >/dev/null 2>&1 && docker i
     log "Fetching CodeQL packs with ${CODEQL_IMAGE}: ${PACKS}"
     for pack in ${PACKS}; do
         docker run --rm \
-            -v "$(pwd)/${OUT_DIR}:/codeql-packs" \
+            -v "${OUT_DIR}:/codeql-packs" \
             "${CODEQL_IMAGE}" \
             codeql pack download "${pack}" --dir /codeql-packs
     done

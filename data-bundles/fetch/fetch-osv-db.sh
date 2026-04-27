@@ -9,9 +9,14 @@ OUT_DIR="${OUT_ROOT}/osv"
 MODE="${OSV_FETCH_MODE:-direct}"
 ECOSYSTEMS="${OSV_ECOSYSTEMS:-}"
 OSV_BUCKET="${OSV_BUCKET_URL:-https://osv-vulnerabilities.storage.googleapis.com}"
+CACHE_KEY="$(dataset_cache_key "osv" "${MODE}" "${ECOSYSTEMS:-all}" "${OSV_BUCKET}")"
 
 require_cmd sha256sum
 mkdir -p "${OUT_DIR}"
+
+if restore_dataset_cache "osv" "${CACHE_KEY}" "${OUT_DIR}"; then
+    exit 0
+fi
 
 if [[ "${MODE}" == "scanner" ]]; then
     if ! command -v osv-scanner >/dev/null 2>&1; then
@@ -25,6 +30,7 @@ if [[ "${MODE}" == "scanner" ]]; then
             .
         write_metadata "${OUT_DIR}" "osv" "osv-scanner --download-offline-databases"
         write_checksums "${OUT_DIR}"
+        store_dataset_cache "osv" "${CACHE_KEY}" "${OUT_DIR}"
         exit 0
     fi
 fi
@@ -60,3 +66,4 @@ else
 fi
 write_metadata "${OUT_DIR}" "osv" "${OSV_BUCKET}"
 write_checksums "${OUT_DIR}"
+store_dataset_cache "osv" "${CACHE_KEY}" "${OUT_DIR}"

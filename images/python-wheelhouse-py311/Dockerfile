@@ -12,5 +12,6 @@ LABEL org.opencontainers.image.description="SPT frozen CPython 3.11 Linux x86_64
 
 COPY data-bundles/sources/python-wheels/py311/ /wheelhouse/py311/
 COPY requirements/py311/                       /requirements/py311/
+COPY data-bundles/sources/python-wheels/py311/locks/ /requirements/py311/
 
 CMD ["find", "/wheelhouse/py311", "-name", "*.whl", "-printf", "%f\n"]

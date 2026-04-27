@@ -1,7 +1,7 @@
 # fuzzing
 
 Coverage-guided compiled harness fuzzing with **AFL++** and **libFuzzer**.
-`honggfuzz` is installed but experimental in v0.1.1.
+`honggfuzz` is installed but experimental in v0.1.2.
 
 ## Environment Variables
 
@@ -29,7 +29,7 @@ Coverage-guided compiled harness fuzzing with **AFL++** and **libFuzzer**.
 standard artifact layout and emits `engine_status=experimental`. The image
 builds and installs `google/honggfuzz` from source, but the release-gating
 workflow still treats AFL++ and libFuzzer as the first-class engines for
-v0.1.1.
+v0.1.2.
 
 Honggfuzz should become first-class only after its wrapper, smoke fixture, crash
 collection, replay metadata, normalized outputs, and docs meet the same bar as

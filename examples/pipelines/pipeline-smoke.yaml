@@ -1,0 +1,55 @@
+version: 1
+pipeline_id: pipeline-smoke
+request_correlation_id: auto
+
+runtime:
+  engine: docker
+  default_network: none
+  registry: docker.io/library
+  tag: latest
+
+artifacts_root: ../../artifacts/pipelines/pipeline-smoke
+
+steps:
+  - id: produce
+    image: busybox
+    command:
+      - sh
+      - -lc
+      - |
+        mkdir -p /artifacts/results/producer
+        printf '{"schema_version":"1.0.0","tool":"producer","findings":[]}\n' > /artifacts/results/producer/tool-result.json
+    required: true
+    mounts:
+      - source: ../../artifacts/pipelines/pipeline-smoke/steps/01-produce
+        target: /artifacts
+        mode: rw
+    expected_artifacts:
+      - /artifacts/results/producer/tool-result.json
+    schema_validation:
+      - path: /artifacts/results/producer/tool-result.json
+        schema: schemas/tool-result.schema.json
+
+  - id: consume
+    depends_on: [produce]
+    image: busybox
+    command:
+      - sh
+      - -lc
+      - |
+        test -f /input/results/producer/tool-result.json
+        mkdir -p /artifacts/results/consumer
+        printf '{"schema_version":"1.0.0","tool":"consumer","findings":[]}\n' > /artifacts/results/consumer/tool-result.json
+    required: true
+    mounts:
+      - source: ../../artifacts/pipelines/pipeline-smoke/steps/01-produce
+        target: /input
+        mode: ro
+      - source: ../../artifacts/pipelines/pipeline-smoke/steps/02-consume
+        target: /artifacts
+        mode: rw
+    expected_artifacts:
+      - /artifacts/results/consumer/tool-result.json
+    schema_validation:
+      - path: /artifacts/results/consumer/tool-result.json
+        schema: schemas/tool-result.schema.json

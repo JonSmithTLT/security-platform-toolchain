@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
-NATIVE_WORKTREE="${NATIVE_WORKTREE:-${HOME}/spt-build/security-platform-toolchain}"
+NATIVE_WORKTREE="${NATIVE_WORKTREE:-${HOME}/spt-native-worktree}"
 ALLOW_NATIVE_DELETE="${ALLOW_NATIVE_DELETE:-0}"
 RESET_NATIVE_WORKTREE="${RESET_NATIVE_WORKTREE:-0}"
 

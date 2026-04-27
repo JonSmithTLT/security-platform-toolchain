@@ -1,8 +1,8 @@
 # Known Limitations
 
-This file records limitations for `v0.1.1-smoke`. These are not blockers for
-the smoke release, but they should be understood before treating the bundle as a
-polished release candidate.
+This file records limitations for `v0.1.2`. These are not blockers for the
+offline bundle release, but they should be understood before treating the bundle
+as a polished production distribution.
 
 ## Version Pinning
 
@@ -29,7 +29,7 @@ polished release candidate.
 
 - honggfuzz is installed in the fuzzing image and `FUZZ_ENGINE=honggfuzz` is
   accepted.
-- It is still experimental and non-gating in `v0.1.1-smoke`.
+- It is still experimental and non-gating in `v0.1.2`.
 - AFL++ and libFuzzer are the first-class fuzzing engines for this release.
 - Promotion to first-class should require real campaign execution, crash
   collection, replay metadata, normalized output parity, and release-gating

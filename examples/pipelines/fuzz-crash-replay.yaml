@@ -1,0 +1,74 @@
+version: 1
+pipeline_id: fuzz-crash-replay
+request_correlation_id: auto
+
+runtime:
+  engine: docker
+  default_network: none
+  registry: registry.internal/security-platform
+  tag: 0.1.2
+
+artifacts_root: ../../artifacts/pipelines/fuzz-crash-replay
+
+steps:
+  - id: harness-builder
+    image: spt-harness-builder
+    command: ["run-harness-builder"]
+    required: true
+    mounts:
+      - source: ../..
+        target: /workspace
+        mode: ro
+      - source: ../../artifacts/pipelines/fuzz-crash-replay/steps/01-harness-builder
+        target: /artifacts
+        mode: rw
+    expected_artifacts:
+      - /artifacts/job-report.json
+
+  - id: fuzzing
+    depends_on: [harness-builder]
+    image: spt-fuzzing
+    command: ["run-fuzzing"]
+    required: true
+    env:
+      FUZZ_ENGINE: afl
+    mounts:
+      - source: ../../artifacts/pipelines/fuzz-crash-replay/steps/01-harness-builder
+        target: /workspace
+        mode: ro
+      - source: ../../artifacts/pipelines/fuzz-crash-replay/steps/02-fuzzing
+        target: /artifacts
+        mode: rw
+    expected_artifacts:
+      - /artifacts/job-report.json
+
+  - id: crash-triage
+    depends_on: [fuzzing]
+    image: spt-crash-triage
+    command: ["run-crash-triage"]
+    required: true
+    mounts:
+      - source: ../../artifacts/pipelines/fuzz-crash-replay/steps/02-fuzzing
+        target: /workspace
+        mode: ro
+      - source: ../../artifacts/pipelines/fuzz-crash-replay/steps/03-crash-triage
+        target: /artifacts
+        mode: rw
+    expected_artifacts:
+      - /artifacts/job-report.json
+
+  - id: replay-runner
+    depends_on: [crash-triage]
+    image: spt-replay-runner
+    command: ["run-replay"]
+    required: false
+    continue_on_failure: true
+    mounts:
+      - source: ../../artifacts/pipelines/fuzz-crash-replay/steps/03-crash-triage
+        target: /workspace
+        mode: ro
+      - source: ../../artifacts/pipelines/fuzz-crash-replay/steps/04-replay-runner
+        target: /artifacts
+        mode: rw
+    expected_artifacts:
+      - /artifacts/job-report.json
