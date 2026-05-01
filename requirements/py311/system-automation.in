@@ -1,0 +1,22 @@
+# requirements/py311/system-automation.in
+# CPython 3.11 / Rocky 8-compatible linux_x86_64 — subprocess, shell, and host automation helpers
+click
+typer
+rich
+shellingham
+sh
+plumbum
+invoke
+fabric
+pexpect
+# Keep psutil inside currently available manylinux_2_17_x86_64 cp311 wheels.
+psutil<=7.1.1
+distro
+humanfriendly
+colorama
+platformdirs
+filelock
+subprocess-tee
+python-on-whales
+python-crontab
+schedule

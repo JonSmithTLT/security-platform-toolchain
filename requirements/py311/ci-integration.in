@@ -1,0 +1,10 @@
+# requirements/py311/ci-integration.in
+# CPython 3.11 / Rocky 8-compatible linux_x86_64 — CI/Jenkins and resilient integration helpers
+tenacity
+backoff
+tqdm
+requests
+httpx
+aiohttp
+python-dotenv
+keyring

@@ -1,0 +1,16 @@
+# requirements/py311/reporting-extended.in
+# CPython 3.11 / Rocky 8-compatible linux_x86_64 — docs, reports, and rich output
+jinja2
+markdown
+pygments
+rich
+tabulate
+beautifulsoup4
+lxml
+python-docx
+python-pptx
+openpyxl
+xlsxwriter
+pypdf
+reportlab
+weasyprint

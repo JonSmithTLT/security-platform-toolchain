@@ -1,6 +1,7 @@
 # symbolic
 
-Symbolic execution using **angr** (default) or **KLEE**.
+Symbolic execution using **angr** on the CPython 3.11 runtime baseline.
+`KLEE` remains a wrapper mode, but the image does not install KLEE by default.
 
 ## Environment Variables
 
@@ -18,9 +19,14 @@ $ARTIFACTS_DIR/
 ├── job-report.json
 ├── logs/symbolic.log
 └── results/symbolic/
-    └── raw/
-        ├── angr-results.json     # angr findings (unconstrained PC, errors)
-        └── klee-out/             # KLEE output directory (klee mode)
+    ├── raw/
+    │   ├── angr-results.json     # angr findings (unconstrained PC, errors)
+    │   └── klee-out/             # KLEE output directory (klee mode)
+    ├── normalized/
+    │   └── symbolic-summary.json
+    ├── reports/
+    │   └── symbolic-summary.md
+    └── tool-result.json
 ```
 
 ## Notes

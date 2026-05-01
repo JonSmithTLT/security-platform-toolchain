@@ -47,7 +47,23 @@ REQUIRED_GROUPS=(
 
 OPTIONAL_GROUPS=(
     data-science-optional
+    dependency-audit
+    failure-log-analysis
+    fuzzing-optional
+    large-artifact-compression
     ml-runtime-light
+    network-os-evidence
+    networking-protocol
+    profiling-debugging
+    security-parsers
+    system-automation
+    static-analysis-python
+    testing-evidence
+    testing-extended
+    ci-integration
+    packaging-build
+    reporting-extended
+    heavy-security-optional
 )
 
 mkdir -p "${LOCK_ROOT}"
@@ -108,7 +124,26 @@ REQUIRED = [
     "rag-light",
     "security-research-python",
 ]
-OPTIONAL = ["data-science-optional", "ml-runtime-light"]
+OPTIONAL = [
+    "data-science-optional",
+    "dependency-audit",
+    "failure-log-analysis",
+    "fuzzing-optional",
+    "large-artifact-compression",
+    "ml-runtime-light",
+    "network-os-evidence",
+    "networking-protocol",
+    "profiling-debugging",
+    "security-parsers",
+    "system-automation",
+    "static-analysis-python",
+    "testing-evidence",
+    "testing-extended",
+    "ci-integration",
+    "packaging-build",
+    "reporting-extended",
+    "heavy-security-optional",
+]
 
 def run(cmd, **kw):
     print(f"  $ {' '.join(str(c) for c in cmd)}", flush=True)

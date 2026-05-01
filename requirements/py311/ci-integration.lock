@@ -1,0 +1,89 @@
+aiohappyeyeballs==2.6.1
+    # via aiohttp
+aiohttp==3.13.5
+    # via -r /in/ci-integration.in
+aiosignal==1.4.0
+    # via aiohttp
+anyio==4.13.0
+    # via httpx
+attrs==26.1.0
+    # via aiohttp
+backoff==2.2.1
+    # via -r /in/ci-integration.in
+backports-tarfile==1.2.0
+    # via jaraco-context
+certifi==2026.4.22
+    # via
+    #   httpcore
+    #   httpx
+    #   requests
+cffi==2.0.0
+    # via cryptography
+charset-normalizer==3.4.7
+    # via requests
+cryptography==47.0.0
+    # via secretstorage
+frozenlist==1.8.0
+    # via
+    #   aiohttp
+    #   aiosignal
+h11==0.16.0
+    # via httpcore
+httpcore==1.0.9
+    # via httpx
+httpx==0.28.1
+    # via -r /in/ci-integration.in
+idna==3.13
+    # via
+    #   anyio
+    #   httpx
+    #   requests
+    #   yarl
+importlib-metadata==9.0.0
+    # via keyring
+jaraco-classes==3.4.0
+    # via keyring
+jaraco-context==6.1.2
+    # via keyring
+jaraco-functools==4.4.0
+    # via keyring
+jeepney==0.9.0
+    # via
+    #   keyring
+    #   secretstorage
+keyring==25.7.0
+    # via -r /in/ci-integration.in
+more-itertools==11.0.2
+    # via
+    #   jaraco-classes
+    #   jaraco-functools
+multidict==6.7.1
+    # via
+    #   aiohttp
+    #   yarl
+propcache==0.4.1
+    # via
+    #   aiohttp
+    #   yarl
+pycparser==3.0
+    # via cffi
+python-dotenv==1.2.2
+    # via -r /in/ci-integration.in
+requests==2.33.1
+    # via -r /in/ci-integration.in
+secretstorage==3.5.0
+    # via keyring
+tenacity==9.1.4
+    # via -r /in/ci-integration.in
+tqdm==4.67.3
+    # via -r /in/ci-integration.in
+typing-extensions==4.15.0
+    # via
+    #   aiosignal
+    #   anyio
+urllib3==2.6.3
+    # via requests
+yarl==1.23.0
+    # via aiohttp
+zipp==3.23.1
+    # via importlib-metadata

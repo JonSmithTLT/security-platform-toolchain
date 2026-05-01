@@ -1,0 +1,206 @@
+{
+  "name": "@spt/frontend-dependency-pack",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Air-gap candidate frontend dependency pack for the REVELATIONS Phase 9 operational UI.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "*",
+    "@radix-ui/react-alert-dialog": "*",
+    "@radix-ui/react-checkbox": "*",
+    "@radix-ui/react-context-menu": "*",
+    "@radix-ui/react-dialog": "*",
+    "@radix-ui/react-dropdown-menu": "*",
+    "@radix-ui/react-label": "*",
+    "@radix-ui/react-popover": "*",
+    "@radix-ui/react-progress": "*",
+    "@radix-ui/react-scroll-area": "*",
+    "@radix-ui/react-select": "*",
+    "@radix-ui/react-separator": "*",
+    "@radix-ui/react-slot": "*",
+    "@radix-ui/react-switch": "*",
+    "@radix-ui/react-tabs": "*",
+    "@radix-ui/react-toast": "*",
+    "@radix-ui/react-tooltip": "*",
+    "@tanstack/react-query": "*",
+    "@tanstack/react-table": "*",
+    "@tanstack/react-virtual": "*",
+    "@xyflow/react": "*",
+    "class-variance-authority": "*",
+    "clsx": "*",
+    "cmdk": "*",
+    "dagre": "*",
+    "date-fns": "*",
+    "file-saver": "*",
+    "lucide-react": "*",
+    "msw": "*",
+    "nanoid": "*",
+    "openapi-fetch": "*",
+    "papaparse": "*",
+    "prismjs": "*",
+    "react": "*",
+    "react-dom": "*",
+    "react-error-boundary": "*",
+    "react-hook-form": "*",
+    "react-json-view-lite": "*",
+    "react-markdown": "*",
+    "react-resizable-panels": "*",
+    "react-router-dom": "*",
+    "recharts": "*",
+    "rehype-sanitize": "*",
+    "remark-gfm": "*",
+    "sonner": "*",
+    "tailwind-merge": "*",
+    "tailwindcss-animate": "*",
+    "yaml": "*",
+    "zod": "*",
+    "zustand": "*"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9",
+    "@playwright/test": "*",
+    "@testing-library/jest-dom": "*",
+    "@testing-library/react": "*",
+    "@types/node": "*",
+    "@vitejs/plugin-react": "*",
+    "autoprefixer": "*",
+    "eslint": "^9",
+    "eslint-config-prettier": "*",
+    "eslint-plugin-jsx-a11y": "*",
+    "eslint-plugin-react": "*",
+    "eslint-plugin-react-hooks": "*",
+    "eslint-plugin-react-refresh": "*",
+    "jsdom": "*",
+    "openapi-typescript": "*",
+    "playwright": "*",
+    "pnpm": "*",
+    "postcss": "*",
+    "prettier": "*",
+    "tailwindcss": "*",
+    "typescript": "*",
+    "typescript-eslint": "*",
+    "vite": "*",
+    "vite-tsconfig-paths": "*",
+    "vitest": "*"
+  },
+  "x-spt-package-groups": {
+    "frontend-package-offline": [
+      "pnpm",
+      "corepack"
+    ],
+    "frontend-core": [
+      "react",
+      "react-dom",
+      "vite",
+      "typescript",
+      "@vitejs/plugin-react",
+      "react-router-dom"
+    ],
+    "frontend-api-contract": [
+      "openapi-typescript",
+      "openapi-fetch",
+      "@tanstack/react-query",
+      "zod"
+    ],
+    "frontend-ui": [
+      "tailwindcss",
+      "postcss",
+      "autoprefixer",
+      "clsx",
+      "tailwind-merge",
+      "class-variance-authority",
+      "lucide-react"
+    ],
+    "frontend-ui-primitives": [
+      "@radix-ui/react-alert-dialog",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-dropdown-menu",
+      "@radix-ui/react-tooltip",
+      "@radix-ui/react-tabs",
+      "@radix-ui/react-popover",
+      "@radix-ui/react-select",
+      "@radix-ui/react-checkbox",
+      "@radix-ui/react-switch",
+      "@radix-ui/react-scroll-area",
+      "@radix-ui/react-separator",
+      "@radix-ui/react-toast",
+      "@radix-ui/react-label",
+      "@radix-ui/react-slot",
+      "@radix-ui/react-context-menu",
+      "@radix-ui/react-progress"
+    ],
+    "frontend-workspace-polish": [
+      "cmdk",
+      "sonner",
+      "react-resizable-panels",
+      "@tanstack/react-virtual"
+    ],
+    "frontend-visual-polish": [
+      "tailwindcss-animate"
+    ],
+    "frontend-graph": [
+      "@xyflow/react",
+      "dagre"
+    ],
+    "frontend-ops-views": [
+      "@tanstack/react-table",
+      "recharts",
+      "date-fns",
+      "react-error-boundary"
+    ],
+    "frontend-forms": [
+      "react-hook-form",
+      "@hookform/resolvers"
+    ],
+    "frontend-artifacts": [
+      "react-markdown",
+      "remark-gfm",
+      "rehype-sanitize",
+      "react-json-view-lite",
+      "prismjs"
+    ],
+    "frontend-file-data-utils": [
+      "papaparse",
+      "file-saver",
+      "yaml"
+    ],
+    "frontend-state-utils": [
+      "zustand",
+      "nanoid"
+    ],
+    "frontend-test-quality": [
+      "vitest",
+      "@testing-library/react",
+      "@testing-library/jest-dom",
+      "jsdom",
+      "msw"
+    ],
+    "frontend-e2e-optional": [
+      "@playwright/test",
+      "playwright"
+    ],
+    "frontend-dev-quality": [
+      "eslint",
+      "@eslint/js",
+      "typescript-eslint",
+      "eslint-plugin-react",
+      "eslint-plugin-react-hooks",
+      "eslint-plugin-react-refresh",
+      "eslint-plugin-jsx-a11y",
+      "eslint-config-prettier",
+      "prettier",
+      "@types/node",
+      "vite-tsconfig-paths"
+    ],
+    "frontend-heavy-optional": [
+      "elkjs",
+      "monaco-editor",
+      "shiki"
+    ]
+  }
+}

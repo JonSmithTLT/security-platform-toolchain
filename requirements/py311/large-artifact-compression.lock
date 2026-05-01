@@ -1,0 +1,20 @@
+cbor2==5.9.0
+    # via -r /in/large-artifact-compression.in
+duckdb==1.2.2
+    # via -r /in/large-artifact-compression.in
+ijson==3.5.0
+    # via -r /in/large-artifact-compression.in
+lz4==4.4.5
+    # via -r /in/large-artifact-compression.in
+msgpack==1.1.2
+    # via -r /in/large-artifact-compression.in
+orjson==3.11.8
+    # via -r /in/large-artifact-compression.in
+polars==1.40.1
+    # via -r /in/large-artifact-compression.in
+polars-runtime-32==1.40.1
+    # via polars
+ujson==5.10.0
+    # via -r /in/large-artifact-compression.in
+zstandard==0.25.0
+    # via -r /in/large-artifact-compression.in

@@ -9,7 +9,7 @@ REGISTRY="${REGISTRY:-registry.internal/security-platform}"
 BUNDLE_DIR="${BUNDLE_DIR:-offline-bundles/out}"
 TAR="${BUNDLE_DIR}/spt-bundle-${TAG}.tar.gz"
 
-"${ROOT_DIR}/scripts/verify-image-bundle.sh"
+env TAG="${TAG}" BUNDLE_DIR="${BUNDLE_DIR}" "${ROOT_DIR}/scripts/verify-image-bundle.sh"
 docker load -i "${TAR}"
 
 printf 'Loaded SPT image tags:\n'

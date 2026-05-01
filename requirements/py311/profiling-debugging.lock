@@ -1,0 +1,14 @@
+line-profiler==5.0.0
+    # via -r /in/profiling-debugging.in
+memory-profiler==0.61.0
+    # via -r /in/profiling-debugging.in
+objgraph==3.6.2
+    # via -r /in/profiling-debugging.in
+psutil==7.1.1
+    # via
+    #   -r /in/profiling-debugging.in
+    #   memory-profiler
+pyinstrument==5.1.2
+    # via -r /in/profiling-debugging.in
+yappi==1.7.6
+    # via -r /in/profiling-debugging.in

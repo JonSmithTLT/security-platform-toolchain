@@ -1,0 +1,83 @@
+annotated-doc==0.0.4
+    # via typer
+attrs==26.1.0
+    # via
+    #   -r /in/core-python.in
+    #   jsonschema
+    #   referencing
+certifi==2026.4.22
+    # via
+    #   -r /in/core-python.in
+    #   requests
+charset-normalizer==3.4.7
+    # via
+    #   -r /in/core-python.in
+    #   requests
+click==8.3.3
+    # via
+    #   -r /in/core-python.in
+    #   typer
+idna==3.13
+    # via
+    #   -r /in/core-python.in
+    #   requests
+jinja2==3.1.6
+    # via -r /in/core-python.in
+jsonschema==4.26.0
+    # via -r /in/core-python.in
+jsonschema-specifications==2025.9.1
+    # via jsonschema
+markdown-it-py==4.0.0
+    # via rich
+markupsafe==3.0.3
+    # via jinja2
+mdurl==0.1.2
+    # via markdown-it-py
+packaging==26.2
+    # via -r /in/core-python.in
+pygments==2.20.0
+    # via rich
+python-dateutil==2.9.0.post0
+    # via -r /in/core-python.in
+python-dotenv==1.2.2
+    # via -r /in/core-python.in
+pyyaml==6.0.3
+    # via -r /in/core-python.in
+referencing==0.37.0
+    # via
+    #   jsonschema
+    #   jsonschema-specifications
+requests==2.33.1
+    # via -r /in/core-python.in
+rich==15.0.0
+    # via
+    #   -r /in/core-python.in
+    #   typer
+rpds-py==0.30.0
+    # via
+    #   jsonschema
+    #   referencing
+shellingham==1.5.4
+    # via typer
+six==1.17.0
+    # via
+    #   -r /in/core-python.in
+    #   python-dateutil
+structlog==25.5.0
+    # via -r /in/core-python.in
+tabulate==0.10.0
+    # via -r /in/core-python.in
+tenacity==9.1.4
+    # via -r /in/core-python.in
+tomli==2.4.1
+    # via -r /in/core-python.in
+typer==0.25.0
+    # via -r /in/core-python.in
+typing-extensions==4.15.0
+    # via
+    #   -r /in/core-python.in
+    #   referencing
+urllib3==2.6.3
+    # via
+    #   -r /in/core-python.in
+    #   requests

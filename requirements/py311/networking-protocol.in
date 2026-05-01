@@ -1,0 +1,20 @@
+# requirements/py311/networking-protocol.in
+# CPython 3.11 / Rocky 8-compatible linux_x86_64 — networking and protocol helpers
+requests
+httpx
+aiohttp
+websockets
+h11
+h2
+hyperframe
+wsproto
+dnspython
+paramiko
+pyserial
+scapy
+dpkt
+construct
+kaitaistruct
+protobuf
+grpcio
+grpcio-tools

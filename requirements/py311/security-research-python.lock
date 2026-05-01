@@ -1,0 +1,16 @@
+capstone==5.0.7
+    # via -r /in/security-research-python.in
+cffi==2.0.0
+    # via cryptography
+cryptography==47.0.0
+    # via -r /in/security-research-python.in
+pefile==2024.8.26
+    # via -r /in/security-research-python.in
+pycparser==3.0
+    # via cffi
+pyelftools==0.32
+    # via -r /in/security-research-python.in
+python-magic==0.4.27
+    # via -r /in/security-research-python.in
+yara-python==4.5.4
+    # via -r /in/security-research-python.in

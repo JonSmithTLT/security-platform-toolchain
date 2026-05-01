@@ -1,0 +1,14 @@
+# requirements/py311/failure-log-analysis.in
+# CPython 3.11 / Rocky 8-compatible linux_x86_64 — logs, traceback, and failure artifact parsing
+structlog
+loguru
+python-json-logger
+coloredlogs
+deepdiff
+jsonpath-ng
+# Keep manylinux_2_17_x86_64 cp311 wheel availability.
+rapidfuzz<=3.13.0
+regex
+dateparser
+ruamel.yaml
+tomli-w

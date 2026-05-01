@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # images/symbolic/Dockerfile
-# Symbolic execution using angr (Python) and optional KLEE support.
+# Symbolic execution using angr on the CPython 3.11 runtime baseline.
 
 ARG BASE_IMAGE=registry.internal/security-platform/spt-base:latest
 FROM ${BASE_IMAGE}
@@ -19,8 +19,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         g++ \
         libffi-dev \
         libssl-dev \
-        python3-dev \
-    && pip3 install angr==9.2.127
+    && python3 -m pip install --disable-pip-version-check \
+        "pycparser<2.23" \
+        angr==9.2.127
 
 COPY images/symbolic/run-symbolic.sh /usr/local/bin/run-symbolic
 COPY images/symbolic/angr-explore.py /usr/local/lib/spt/angr-explore.py

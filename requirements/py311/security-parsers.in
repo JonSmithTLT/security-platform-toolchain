@@ -1,0 +1,28 @@
+# requirements/py311/security-parsers.in
+# CPython 3.11 / Rocky 8-compatible linux_x86_64 — parsers for security artifacts
+construct
+construct-typing
+bitstruct
+filetype
+python-magic
+olefile
+oletools
+msoffcrypto-tool
+pdfminer.six
+pypdf
+python-docx
+python-pptx
+openpyxl
+xlsxwriter
+lxml
+beautifulsoup4
+defusedxml
+xmltodict
+ijson
+orjson
+# Newer ujson releases may not publish manylinux_2_17_x86_64 cp311 wheels.
+ujson<=5.10.0
+msgpack
+# Keep the binary-only Rocky 8 py311 lane on a cbor2 release with a
+# manylinux_2_17_x86_64 cp311 wheel.
+cbor2<=5.9.0

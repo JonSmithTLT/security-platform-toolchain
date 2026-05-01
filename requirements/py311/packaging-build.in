@@ -1,0 +1,14 @@
+# requirements/py311/packaging-build.in
+# CPython 3.11 / Rocky 8-compatible linux_x86_64 — package build and release helpers
+pip
+setuptools
+wheel
+build
+pip-tools
+twine
+hatch
+hatchling
+poetry-core
+setuptools-scm
+auditwheel
+check-wheel-contents

@@ -93,6 +93,14 @@ make native-release-smoke REGISTRY=registry.internal/security-platform TAG=0.1.2
 It runs the smoke checklist, creates image/data bundles, splits large tarballs,
 verifies checksums, and writes upload helper files under `offline-bundles/out/`.
 
+After a build or release, run the broader health check when you want a single
+report that covers generated assets, offline execution, wheelhouse integrity,
+pipeline playbooks, and release policy:
+
+```bash
+make comprehensive-smoke REGISTRY=registry.internal/security-platform TAG=0.1.2 DATA_DIR=data-bundles/sources
+```
+
 The restore-side validation driver is:
 
 ```bash

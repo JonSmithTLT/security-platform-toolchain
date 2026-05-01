@@ -167,7 +167,7 @@ make functional-smoke \
 ```bash
 INTERNAL_REGISTRY=registry.internal.example.com:5000
 
-for img in base python-runtime schema-validator result-normalizers c-cpp-analysis coverage-tools harness-builder fuzzing protocol-fuzzing crash-triage replay-runner sbom osv-scanner secrets image-scanner re-lightweight yara intel-ingest rag-indexer diff-impact dependency-review ghidra-base ghidra-exporter ghidra-mcp eval-runner gitnexus semgrep codeql corpus-tools symbolic; do
+for img in base python-wheelhouse-py311 frontend-node-toolchain python-runtime schema-validator result-normalizers c-cpp-analysis coverage-tools harness-builder fuzzing protocol-fuzzing crash-triage replay-runner sbom osv-scanner secrets image-scanner re-lightweight yara intel-ingest rag-indexer diff-impact dependency-review ghidra-base ghidra-exporter ghidra-mcp eval-runner gitnexus semgrep codeql corpus-tools symbolic; do
     docker tag registry.internal/security-platform/spt-${img}:1.2.3 \
                ${INTERNAL_REGISTRY}/spt-${img}:1.2.3
     docker push ${INTERNAL_REGISTRY}/spt-${img}:1.2.3

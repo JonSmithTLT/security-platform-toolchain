@@ -24,6 +24,7 @@ FETCHERS=(
     fetch-codeql-packs.sh
     fetch-vendor-advisories.sh
     fetch-python-wheels.sh
+    fetch-frontend-npm-cache.sh
 )
 
 mkdir -p "${OUT_ROOT}"
