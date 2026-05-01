@@ -1,0 +1,101 @@
+anyio==4.13.0
+    # via httpx
+certifi==2026.4.22
+    # via
+    #   httpcore
+    #   httpx
+    #   requests
+charset-normalizer==3.4.7
+    # via requests
+docker==7.1.0
+    # via
+    #   -r /in/testing-extended.in
+    #   testcontainers
+execnet==2.1.2
+    # via pytest-xdist
+factory-boy==3.3.3
+    # via -r /in/testing-extended.in
+faker==40.15.0
+    # via
+    #   -r /in/testing-extended.in
+    #   factory-boy
+freezegun==1.5.5
+    # via -r /in/testing-extended.in
+h11==0.16.0
+    # via httpcore
+httpcore==1.0.9
+    # via httpx
+httpx==0.28.1
+    # via
+    #   pytest-httpx
+    #   respx
+idna==3.13
+    # via
+    #   anyio
+    #   httpx
+    #   requests
+iniconfig==2.3.0
+    # via pytest
+packaging==26.2
+    # via
+    #   pytest
+    #   pytest-rerunfailures
+pluggy==1.6.0
+    # via pytest
+py-cpuinfo==9.0.0
+    # via pytest-benchmark
+pygments==2.20.0
+    # via pytest
+pytest==9.0.3
+    # via
+    #   pytest-benchmark
+    #   pytest-httpx
+    #   pytest-rerunfailures
+    #   pytest-xdist
+pytest-benchmark==5.2.3
+    # via -r /in/testing-extended.in
+pytest-httpx==0.36.2
+    # via -r /in/testing-extended.in
+pytest-rerunfailures==16.1
+    # via -r /in/testing-extended.in
+pytest-xdist==3.8.0
+    # via -r /in/testing-extended.in
+python-dateutil==2.9.0.post0
+    # via freezegun
+python-dotenv==1.2.2
+    # via testcontainers
+pyyaml==6.0.3
+    # via
+    #   responses
+    #   vcrpy
+requests==2.33.1
+    # via
+    #   docker
+    #   requests-mock
+    #   responses
+requests-mock==1.12.1
+    # via -r /in/testing-extended.in
+responses==0.26.0
+    # via -r /in/testing-extended.in
+respx==0.23.1
+    # via -r /in/testing-extended.in
+six==1.17.0
+    # via python-dateutil
+testcontainers==4.14.2
+    # via -r /in/testing-extended.in
+typing-extensions==4.15.0
+    # via
+    #   anyio
+    #   testcontainers
+urllib3==2.6.3
+    # via
+    #   docker
+    #   requests
+    #   responses
+    #   testcontainers
+vcrpy==8.1.1
+    # via -r /in/testing-extended.in
+wrapt==2.1.2
+    # via
+    #   testcontainers
+    #   vcrpy

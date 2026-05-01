@@ -1,0 +1,22 @@
+# requirements/py311/heavy-security-optional.in
+# CPython 3.11 / Rocky 8-compatible linux_x86_64 — native-heavy security analysis
+# This group is intentionally optional/experimental until representative
+# Rocky 8 validation hosts prove the runtime dependencies.
+pycryptodome
+bcrypt
+passlib
+pyjwt
+pyopenssl
+capstone
+unicorn
+pyelftools
+pefile
+# Current manylinux_2_17_x86_64 cp311 lookup exposes an older LIEF wheel.
+lief<=0.12.3
+yara-python
+# Keep z3 on a release with manylinux_2_17_x86_64 cp311 wheels.
+z3-solver<=4.15.4.0
+pwntools
+# pwntools transitively uses psutil; keep it inside currently available
+# manylinux_2_17_x86_64 cp311 wheels.
+psutil<=7.1.1

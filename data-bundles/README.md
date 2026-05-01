@@ -121,6 +121,7 @@ docker run --rm --network none \
 | Semgrep rules | SAST rules |
 | CodeQL packs | CodeQL queries/packs |
 | Vendor advisories | Product-specific vulnerability intelligence |
+| Frontend npm cache | Offline Node/React/Vite dependency cache for the Phase 9 UI |
 
 Keep raw source metadata, dataset version, fetch date, checksum, and license
 notes with each dataset.

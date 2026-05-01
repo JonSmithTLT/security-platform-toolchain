@@ -1,0 +1,18 @@
+# requirements/py311/dependency-audit.in
+# CPython 3.11 / Rocky 8-compatible linux_x86_64 — dependency, license, and environment evidence
+pip-tools
+pipdeptree
+pip-audit
+cyclonedx-bom
+cyclonedx-python-lib
+packageurl-python
+spdx-tools
+license-expression
+build
+wheel
+setuptools
+virtualenv
+distlib
+platformdirs
+importlib-metadata
+importlib-resources

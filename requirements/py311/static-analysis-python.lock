@@ -1,0 +1,56 @@
+astroid==4.0.4
+    # via pylint
+bandit==1.9.4
+    # via -r /in/static-analysis-python.in
+dill==0.4.1
+    # via pylint
+flake8==7.3.0
+    # via -r /in/static-analysis-python.in
+isort==8.0.1
+    # via pylint
+librt==0.9.0
+    # via mypy
+markdown-it-py==4.0.0
+    # via rich
+mccabe==0.7.0
+    # via
+    #   flake8
+    #   pylint
+mdurl==0.1.2
+    # via markdown-it-py
+mypy==1.20.2
+    # via -r /in/static-analysis-python.in
+mypy-extensions==1.1.0
+    # via mypy
+pathspec==1.1.1
+    # via mypy
+platformdirs==4.9.6
+    # via pylint
+pycodestyle==2.14.0
+    # via flake8
+pyflakes==3.4.0
+    # via flake8
+pygments==2.20.0
+    # via rich
+pylint==4.0.5
+    # via -r /in/static-analysis-python.in
+pyyaml==6.0.3
+    # via bandit
+rich==15.0.0
+    # via bandit
+ruff==0.15.12
+    # via -r /in/static-analysis-python.in
+stevedore==5.7.0
+    # via bandit
+tomlkit==0.14.0
+    # via pylint
+types-python-dateutil==2.9.0.20260408
+    # via -r /in/static-analysis-python.in
+types-pyyaml==6.0.12.20260408
+    # via -r /in/static-analysis-python.in
+types-requests==2.33.0.20260408
+    # via -r /in/static-analysis-python.in
+typing-extensions==4.15.0
+    # via mypy
+urllib3==2.6.3
+    # via types-requests

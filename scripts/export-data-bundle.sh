@@ -20,7 +20,7 @@ MANIFEST="${DATA_BUNDLE_DIR}/${DATA_BUNDLE_NAME}-${TAG}.manifest.json"
 SOURCE_SUMS="${DATA_BUNDLE_DIR}/${DATA_BUNDLE_NAME}-${TAG}.source-checksums.sha256"
 
 if [[ "${SKIP_FETCH}" != "1" ]]; then
-    make data-fetch TAG="${TAG}"
+    make data-fetch TAG="${TAG}" DATA_DIR="${DATA_DIR}"
 fi
 
 if [[ "${SANITIZED}" == "true" ]]; then
@@ -29,9 +29,17 @@ else
     make data-bundle TAG="${TAG}" DATA_DIR="${DATA_DIR}" DATA_BUNDLE_DIR="${DATA_BUNDLE_DIR}" DATA_BUNDLE_NAME="${DATA_BUNDLE_NAME}" SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH}"
 fi
 
-rm -f "${TAR}.part-"*
-split -b "${SPLIT_SIZE}" "${TAR}" "${TAR}.part-"
-sha256sum "${TAR}".part-* > "${DATA_BUNDLE_DIR}/${DATA_BUNDLE_NAME}-${TAG}.parts.sha256"
+PART_SUMS="${DATA_BUNDLE_DIR}/${DATA_BUNDLE_NAME}-${TAG}.parts.sha256"
+rm -f "${TAR}.part-"* "${PART_SUMS}"
+split_bytes="$(numfmt --from=iec "${SPLIT_SIZE}")"
+tar_bytes="$(stat -c '%s' "${TAR}")"
+if (( tar_bytes > split_bytes )); then
+    split -b "${SPLIT_SIZE}" "${TAR}" "${TAR}.part-"
+    sha256sum "${TAR}".part-* > "${PART_SUMS}"
+    printf 'Data parts checksum: %s\n' "${PART_SUMS}"
+else
+    printf 'Data bundle below SPLIT_SIZE=%s; not splitting\n' "${SPLIT_SIZE}"
+fi
 
 printf 'Data bundle: %s\n' "${TAR}"
 printf 'Data manifest: %s\n' "${MANIFEST}"

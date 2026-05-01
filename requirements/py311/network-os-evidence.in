@@ -1,0 +1,15 @@
+# requirements/py311/network-os-evidence.in
+# CPython 3.11 / Rocky 8-compatible linux_x86_64 — OS, network, and packet evidence helpers
+psutil<=7.1.1
+pyroute2
+netaddr
+dnspython
+scapy
+dpkt
+# Keep manylinux_2_17_x86_64 cp311 wheel availability.
+pyzmq<=26.4.0
+ldap3
+paho-mqtt
+pcapng
+puremagic
+pyshark

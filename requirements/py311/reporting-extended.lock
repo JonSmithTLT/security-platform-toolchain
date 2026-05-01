@@ -1,0 +1,84 @@
+beautifulsoup4==4.14.3
+    # via -r /in/reporting-extended.in
+brotli==1.2.0
+    # via fonttools
+cffi==2.0.0
+    # via weasyprint
+charset-normalizer==3.4.7
+    # via reportlab
+cssselect2==0.9.0
+    # via weasyprint
+et-xmlfile==2.0.0
+    # via openpyxl
+fonttools==4.62.1
+    # via weasyprint
+jinja2==3.1.6
+    # via -r /in/reporting-extended.in
+lxml==6.1.0
+    # via
+    #   -r /in/reporting-extended.in
+    #   python-docx
+    #   python-pptx
+markdown==3.10.2
+    # via -r /in/reporting-extended.in
+markdown-it-py==4.0.0
+    # via rich
+markupsafe==3.0.3
+    # via jinja2
+mdurl==0.1.2
+    # via markdown-it-py
+openpyxl==3.1.5
+    # via -r /in/reporting-extended.in
+pillow==12.2.0
+    # via
+    #   python-pptx
+    #   reportlab
+    #   weasyprint
+pycparser==3.0
+    # via cffi
+pydyf==0.12.1
+    # via weasyprint
+pygments==2.20.0
+    # via
+    #   -r /in/reporting-extended.in
+    #   rich
+pypdf==6.10.2
+    # via -r /in/reporting-extended.in
+pyphen==0.17.2
+    # via weasyprint
+python-docx==1.2.0
+    # via -r /in/reporting-extended.in
+python-pptx==1.0.2
+    # via -r /in/reporting-extended.in
+reportlab==4.5.0
+    # via -r /in/reporting-extended.in
+rich==15.0.0
+    # via -r /in/reporting-extended.in
+soupsieve==2.8.3
+    # via beautifulsoup4
+tabulate==0.10.0
+    # via -r /in/reporting-extended.in
+tinycss2==1.5.1
+    # via
+    #   cssselect2
+    #   weasyprint
+tinyhtml5==2.1.0
+    # via weasyprint
+typing-extensions==4.15.0
+    # via
+    #   beautifulsoup4
+    #   python-docx
+    #   python-pptx
+weasyprint==68.1
+    # via -r /in/reporting-extended.in
+webencodings==0.5.1
+    # via
+    #   cssselect2
+    #   tinycss2
+    #   tinyhtml5
+xlsxwriter==3.2.9
+    # via
+    #   -r /in/reporting-extended.in
+    #   python-pptx
+zopfli==0.4.1
+    # via fonttools

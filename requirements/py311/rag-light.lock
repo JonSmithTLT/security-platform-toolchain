@@ -1,0 +1,22 @@
+certifi==2026.4.22
+    # via requests
+charset-normalizer==3.4.7
+    # via requests
+idna==3.13
+    # via requests
+networkx==3.6.1
+    # via -r /in/rag-light.in
+numpy==2.2.6
+    # via
+    #   -r /in/rag-light.in
+    #   rank-bm25
+rank-bm25==0.2.2
+    # via -r /in/rag-light.in
+regex==2026.4.4
+    # via tiktoken
+requests==2.33.1
+    # via tiktoken
+tiktoken==0.11.0
+    # via -r /in/rag-light.in
+urllib3==2.6.3
+    # via requests

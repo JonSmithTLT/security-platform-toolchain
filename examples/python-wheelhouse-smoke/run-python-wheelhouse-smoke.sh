@@ -98,7 +98,7 @@ print('api-future-fastapi imports OK')
         echo "/tmp/venv/bin/python3 -c \"
 from lxml import etree
 import bs4, markdown, pygments, defusedxml, xmltodict, junitparser
-import sarif_om, cyclonedx, packageurl, spdx, cvss
+import sarif_om, cyclonedx, packageurl, spdx_tools, cvss
 print('normalizers-reporting imports OK')
 \""
         ;;
@@ -145,11 +145,153 @@ pa.array([1, 2, 3])
 print('data-science-optional imports OK')
 \""
         ;;
+    dependency-audit)
+        echo "/tmp/venv/bin/python3 -c \"
+import piptools, pipdeptree, pip_audit, cyclonedx, packageurl, spdx_tools
+import license_expression, build, wheel, setuptools, virtualenv, distlib, platformdirs
+import importlib_metadata, importlib_resources
+print('dependency-audit imports OK')
+\""
+        ;;
+    failure-log-analysis)
+        echo "/tmp/venv/bin/python3 -c \"
+import structlog, loguru, pythonjsonlogger, coloredlogs, deepdiff, jsonpath_ng, rapidfuzz, regex, dateparser
+from ruamel.yaml import YAML
+import tomli_w
+YAML().load('a: 1')
+print('failure-log-analysis imports OK')
+\""
+        ;;
+    fuzzing-optional)
+        echo "/tmp/venv/bin/python3 -c \"
+import hypothesis, pytest_randomly, pytest_repeat, faker
+try:
+    import atheris
+except Exception:
+    pass  # Native fuzzing runtime may require host-specific validation.
+print('fuzzing-optional imports OK')
+\""
+        ;;
+    large-artifact-compression)
+        echo "/tmp/venv/bin/python3 -c \"
+import duckdb, zstandard, lz4.frame, polars, ijson, orjson, ujson, msgpack, cbor2
+duckdb.connect(':memory:').execute('select 1').fetchall()
+print('large-artifact-compression imports OK')
+\""
+        ;;
     ml-runtime-light)
         echo "/tmp/venv/bin/python3 -c \"
 import onnxruntime as ort
 ort.get_available_providers()
 print('ml-runtime-light imports OK')
+\""
+        ;;
+    network-os-evidence)
+        echo "/tmp/venv/bin/python3 -c \"
+import psutil, pyroute2, netaddr, dns.resolver, scapy.all, dpkt, zmq, ldap3, paho.mqtt.client, pcapng, puremagic
+try:
+    import pyshark
+except Exception:
+    pass  # pyshark needs tshark for useful runtime work.
+psutil.cpu_count()
+print('network-os-evidence imports OK')
+\""
+        ;;
+    networking-protocol)
+        echo "/tmp/venv/bin/python3 -c \"
+import requests, httpx, aiohttp, websockets, dns.resolver, paramiko, serial
+import scapy.all as scapy, dpkt, construct, kaitaistruct, google.protobuf, grpc
+from construct import Byte, Struct
+from h2.connection import H2Connection
+Struct('kind' / Byte).build({'kind': 1})
+H2Connection()
+print('networking-protocol imports OK')
+\""
+        ;;
+    security-parsers)
+        echo "/tmp/venv/bin/python3 -c \"
+from lxml import etree
+import bs4, olefile, msoffcrypto, pdfminer, pypdf, docx, pptx
+import openpyxl, xlsxwriter, defusedxml, xmltodict, ijson, orjson, ujson, msgpack, cbor2
+import construct, bitstruct, filetype
+from construct import Byte, Struct
+try:
+    import magic
+    magic.from_buffer(b'\\x7fELF')
+except Exception:
+    pass  # libmagic not present in smoke container; wheel loaded OK
+Struct('kind' / Byte).build({'kind': 1})
+bitstruct.pack('u1u3', 1, 2)
+print('security-parsers imports OK')
+\""
+        ;;
+    profiling-debugging)
+        echo "/tmp/venv/bin/python3 -c \"
+import yappi, memory_profiler, objgraph, psutil, pyinstrument, line_profiler
+psutil.cpu_count()
+print('profiling-debugging imports OK')
+\""
+        ;;
+    system-automation)
+        echo "/tmp/venv/bin/python3 -c \"
+import click, typer, rich, shellingham, sh, plumbum, invoke, fabric, pexpect, psutil
+import distro, humanfriendly, colorama, platformdirs, filelock, subprocess_tee
+import python_on_whales, crontab, schedule
+from plumbum import local
+local['python3']('--version')
+psutil.cpu_count()
+print('system-automation imports OK')
+\""
+        ;;
+    static-analysis-python)
+        echo "/tmp/venv/bin/python3 -c \"
+import ruff, mypy, bandit, pylint, flake8
+print('static-analysis-python imports OK')
+\""
+        ;;
+    testing-evidence)
+        echo "/tmp/venv/bin/python3 -c \"
+import pytest, pytest_jsonreport, pytest_metadata, pytest_html, testfixtures, junitparser, pytest_randomly, pytest_repeat
+print('testing-evidence imports OK')
+\""
+        ;;
+    testing-extended)
+        echo "/tmp/venv/bin/python3 -c \"
+import pytest, xdist, requests_mock, responses, respx, factory, faker, freezegun, vcr, docker, testcontainers
+print('testing-extended imports OK')
+\""
+        ;;
+    ci-integration)
+        echo "/tmp/venv/bin/python3 -c \"
+import tenacity, backoff, tqdm, requests, httpx, aiohttp, dotenv, keyring
+print('ci-integration imports OK')
+\""
+        ;;
+    packaging-build)
+        echo "/tmp/venv/bin/python3 -c \"
+import build, piptools, twine, hatchling, poetry.core, setuptools_scm, auditwheel, check_wheel_contents
+print('packaging-build imports OK')
+\""
+        ;;
+    reporting-extended)
+        echo "/tmp/venv/bin/python3 -c \"
+from lxml import etree
+import jinja2, markdown, pygments, rich, tabulate, bs4, docx, pptx, openpyxl, xlsxwriter, pypdf
+import reportlab
+try:
+    import weasyprint
+except Exception:
+    pass  # WeasyPrint requires system Pango/GObject libraries at runtime.
+print('reporting-extended imports OK')
+\""
+        ;;
+    heavy-security-optional)
+        echo "/tmp/venv/bin/python3 -c \"
+from Crypto.Cipher import AES
+import bcrypt, jwt, OpenSSL, capstone, unicorn, elftools, pefile, lief, yara, z3, pwn
+yara.compile(source='rule t { condition: false }')
+capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_64)
+print('heavy-security-optional imports OK')
 \""
         ;;
     *)
@@ -165,7 +307,7 @@ if [[ -f "${OUT_DIR}/wheelhouse/SHA256SUMS" ]]; then
     docker run --rm --network none \
         -v "${OUT_DIR}/wheelhouse:/wheels:ro" \
         busybox \
-        sh -c "cd /wheels && sha256sum -c SHA256SUMS --quiet" \
+        sh -c "cd /wheels && sha256sum -c -s SHA256SUMS" \
         && pass "SHA256SUMS verified" \
         || fail "SHA256SUMS verification failed"
 fi
@@ -177,7 +319,12 @@ for group in core-python api-future-fastapi normalizers-reporting testing-dev \
 done
 
 # Optional groups
-for group in data-science-optional ml-runtime-light; do
+for group in data-science-optional dependency-audit failure-log-analysis \
+             fuzzing-optional large-artifact-compression ml-runtime-light \
+             network-os-evidence networking-protocol profiling-debugging \
+             security-parsers system-automation static-analysis-python \
+             testing-evidence testing-extended ci-integration packaging-build \
+             reporting-extended heavy-security-optional; do
     run_group_smoke "${group}" true
 done
 

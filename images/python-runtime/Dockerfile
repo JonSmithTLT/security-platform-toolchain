@@ -20,11 +20,16 @@ LABEL org.opencontainers.image.description="SPT Python 3.11 runtime base with co
 USER root
 
 COPY --from=py311 /usr/local/ /usr/local/
+COPY --from=py311 /usr/lib/x86_64-linux-gnu/libcrypto.so.3 /usr/local/lib/spt-python-libs/
+COPY --from=py311 /usr/lib/x86_64-linux-gnu/libssl.so.3 /usr/local/lib/spt-python-libs/
 COPY --from=wheelhouse /wheelhouse/py311/core-python/ /tmp/spt-wheels/
 COPY --from=wheelhouse /requirements/py311/core-python.lock /tmp/spt-wheels/
 
 RUN --mount=type=cache,target=/root/.cache/pip \
-    python3 --version \
+    printf '/usr/local/lib/spt-python-libs\n' > /etc/ld.so.conf.d/spt-python-libs.conf \
+    && ldconfig \
+    && python3 --version \
+    && python3 -c "import ssl; print(ssl.OPENSSL_VERSION)" \
     && python3 -m pip install \
         --no-index \
         --find-links /tmp/spt-wheels/ \

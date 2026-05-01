@@ -1,0 +1,74 @@
+annotated-doc==0.0.4
+    # via fastapi
+annotated-types==0.7.0
+    # via pydantic
+anyio==4.13.0
+    # via
+    #   -r /in/api-future-fastapi.in
+    #   httpx
+    #   sse-starlette
+    #   starlette
+certifi==2026.4.22
+    # via
+    #   httpcore
+    #   httpx
+click==8.3.3
+    # via uvicorn
+fastapi==0.136.1
+    # via -r /in/api-future-fastapi.in
+h11==0.16.0
+    # via
+    #   -r /in/api-future-fastapi.in
+    #   httpcore
+    #   uvicorn
+httpcore==1.0.9
+    # via
+    #   -r /in/api-future-fastapi.in
+    #   httpx
+httpx==0.28.1
+    # via -r /in/api-future-fastapi.in
+idna==3.13
+    # via
+    #   anyio
+    #   httpx
+orjson==3.11.8
+    # via -r /in/api-future-fastapi.in
+pydantic==2.13.3
+    # via
+    #   -r /in/api-future-fastapi.in
+    #   fastapi
+    #   pydantic-settings
+pydantic-core==2.46.3
+    # via
+    #   -r /in/api-future-fastapi.in
+    #   pydantic
+pydantic-settings==2.14.0
+    # via -r /in/api-future-fastapi.in
+python-dotenv==1.2.2
+    # via pydantic-settings
+python-multipart==0.0.27
+    # via -r /in/api-future-fastapi.in
+sniffio==1.3.1
+    # via -r /in/api-future-fastapi.in
+sse-starlette==3.4.1
+    # via -r /in/api-future-fastapi.in
+starlette==1.0.0
+    # via
+    #   -r /in/api-future-fastapi.in
+    #   fastapi
+    #   sse-starlette
+typing-extensions==4.15.0
+    # via
+    #   anyio
+    #   fastapi
+    #   pydantic
+    #   pydantic-core
+    #   starlette
+    #   typing-inspection
+typing-inspection==0.4.2
+    # via
+    #   fastapi
+    #   pydantic
+    #   pydantic-settings
+uvicorn==0.46.0
+    # via -r /in/api-future-fastapi.in

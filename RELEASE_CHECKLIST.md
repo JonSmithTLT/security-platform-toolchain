@@ -33,6 +33,7 @@ The automated release driver can run this checklist end to end:
 ```bash
 make doctor REGISTRY=$REGISTRY TAG=$TAG DATA_DIR=$DATA_DIR
 make release-smoke REGISTRY=$REGISTRY TAG=$TAG DATA_DIR=$DATA_DIR
+make comprehensive-smoke REGISTRY=$REGISTRY TAG=$TAG DATA_DIR=$DATA_DIR
 make container-structure-test REGISTRY=$REGISTRY TAG=$TAG
 make release-evidence REGISTRY=$REGISTRY TAG=$TAG DATA_DIR=$DATA_DIR
 make platform-handoff-bundle REGISTRY=$REGISTRY TAG=$TAG
@@ -45,6 +46,14 @@ make release-policy-check REGISTRY=$REGISTRY TAG=$TAG
 It runs preflight checks, fetches data, runs smoke tests, exports bundles,
 splits large tarballs, verifies checksums, records a release stage ledger under
 `artifacts/release-ledger/$TAG/`, and writes:
+
+`make comprehensive-smoke` is the post-build/post-release paranoia pass. It
+validates shell syntax, data/image bundles, release upload asset size, offline
+startup, container structure, curated pipeline playbooks, CVE index smoke,
+wheelhouse smoke, functional smoke, and release policy, then writes
+`artifacts/comprehensive-smoke/$TAG/comprehensive-smoke.md`. Set
+`COMPREHENSIVE_RUN_FUNCTIONAL=0`, `RUN_WHEELHOUSE_SMOKE=0`, or `RUN_RESTORE=1`
+to tune runtime and restore coverage.
 
 Image builds run in parallel by default with `BUILD_JOBS=$(nproc)` when
 available. Override with `BUILD_JOBS=<n>` when the build host needs a lower or

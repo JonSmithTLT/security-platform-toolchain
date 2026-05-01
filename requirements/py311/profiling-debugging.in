@@ -1,0 +1,9 @@
+# requirements/py311/profiling-debugging.in
+# CPython 3.11 / Rocky 8-compatible linux_x86_64 — runtime profiling and debugging helpers
+yappi
+memory-profiler
+objgraph
+psutil<=7.1.1
+pyinstrument
+# Keep manylinux_2_17_x86_64 cp311 wheel availability.
+line-profiler<=5.0.0

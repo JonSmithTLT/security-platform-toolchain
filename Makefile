@@ -6,7 +6,7 @@
 REGISTRY   ?= registry.internal/security-platform
 TAG        ?= latest
 BASE_IMAGE ?= $(REGISTRY)/spt-base:$(TAG)
-IMAGES     := base python-runtime schema-validator result-normalizers c-cpp-analysis coverage-tools harness-builder fuzzing protocol-fuzzing crash-triage replay-runner sbom osv-scanner secrets image-scanner re-lightweight yara intel-ingest rag-indexer diff-impact dependency-review ghidra-base ghidra-exporter ghidra-mcp eval-runner gitnexus semgrep codeql corpus-tools symbolic
+IMAGES     := base python-wheelhouse-py311 frontend-node-toolchain python-runtime schema-validator result-normalizers c-cpp-analysis coverage-tools harness-builder fuzzing protocol-fuzzing crash-triage replay-runner sbom osv-scanner secrets image-scanner re-lightweight yara intel-ingest rag-indexer diff-impact dependency-review ghidra-base ghidra-exporter ghidra-mcp eval-runner gitnexus semgrep codeql corpus-tools symbolic
 TARGET_REGISTRY ?= $(REGISTRY)
 SOURCE_REGISTRY ?= $(REGISTRY)
 GHIDRA_VERSION ?= 12.0.4
@@ -51,6 +51,10 @@ SKIP_BUNDLE         ?= 0
 SKIP_HONGGFUZZ      ?= 1
 RESUME_FROM         ?=
 RUN_FUNCTIONAL      ?= 0
+COMPREHENSIVE_RUN_FUNCTIONAL ?= 1
+RUN_WHEELHOUSE_SMOKE ?= 1
+RUN_FRONTEND_NPM_SMOKE ?= 1
+RUN_RESTORE         ?= 0
 BUNDLE_TAR          = $(BUNDLE_DIR)/spt-bundle-$(TAG).tar.gz
 BUNDLE_MANIFEST     = $(BUNDLE_DIR)/spt-bundle-$(TAG).manifest.json
 IMAGE_BUNDLE_DIGEST ?=
@@ -83,6 +87,7 @@ GZIP_ARGS              ?= -n
 TAR_REPRO_ARGS         ?= --sort=name --mtime=@$(SOURCE_DATE_EPOCH) --owner=0 --group=0 --numeric-owner
 PYTHON_RUNTIME_IMAGE   ?= $(REGISTRY)/spt-python-runtime:$(TAG)
 WHEELHOUSE_IMAGE       ?= $(REGISTRY)/spt-python-wheelhouse-py311:$(TAG)
+FRONTEND_NODE_IMAGE    ?= $(REGISTRY)/spt-frontend-node-toolchain:$(TAG)
 RESET_NATIVE_WORKTREE ?= 0
 BUILD_JOBS          ?= $(shell nproc 2>/dev/null || echo 4)
 MAX_IMAGE_MIB       ?= 4096
@@ -107,9 +112,10 @@ ALLOW_EGRESS_AUDIT_FINDINGS ?= 0
     doctor native-worktree native-release-smoke \
     lint test test-normalizers test-offline verify-offline \
 	functional-smoke smoke-honggfuzz data-bundle-smoke gitnexus-ladybug-smoke gitnexus-git-smoke offline-egress-audit \
-    release-smoke release-restore release-upload release-summary release-tui release-ledger-summary release-evidence release-provenance release-sign-images release-verify-image-signatures release-attest-images release-sboms-cache-store release-sboms-cache-restore release-sboms-cache-info release-policy-check scan-platform container-structure-test \
+    release-smoke release-restore comprehensive-smoke release-upload release-summary release-tui release-ledger-summary release-evidence release-provenance release-sign-images release-verify-image-signatures release-attest-images release-sboms-cache-store release-sboms-cache-restore release-sboms-cache-info release-policy-check scan-platform container-structure-test \
     python-runtime \
-    python-wheelhouse-fetch python-wheelhouse-image python-wheelhouse-smoke python-wheelhouse-verify \
+    python-wheelhouse-fetch python-wheelhouse-image python-wheelhouse-smoke python-wheelhouse-verify python-wheelhouse-plan \
+    frontend-npm-fetch frontend-node-toolchain frontend-npm-smoke frontend-npm-verify frontend-stack-plan \
 	data-fetch data-fetch-quick data-fetch-full data-bundle data-bundle-sanitized data-bundle-sign data-bundle-verify-signature data-delta-bundle data-verify data-check-freshness data-bundle-cache-store data-bundle-cache-restore data-bundle-cache-info \
 	cve-index-smoke cve-api \
 	tool-catalog \
@@ -239,8 +245,8 @@ codeql: base ## Build spt-codeql
 corpus-tools: base ## Build spt-corpus-tools
 	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-corpus-tools:$(TAG) -f images/corpus-tools/Dockerfile .
 
-symbolic: base ## Build spt-symbolic
-	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(REGISTRY)/spt-symbolic:$(TAG) -f images/symbolic/Dockerfile .
+symbolic: python-runtime ## Build spt-symbolic
+	$(DOCKER_BUILD) --build-arg BASE_IMAGE=$(PYTHON_RUNTIME_IMAGE) -t $(REGISTRY)/spt-symbolic:$(TAG) -f images/symbolic/Dockerfile .
 
 ## ── Lint ────────────────────────────────────────────────────────────────────
 
@@ -346,14 +352,53 @@ python-wheelhouse-image: ## Build the spt-python-wheelhouse-py311 data carrier i
 	    -t $(REGISTRY)/spt-python-wheelhouse-py311:$(TAG) \
 	    -f images/python-wheelhouse-py311/Dockerfile .
 
+python-wheelhouse-py311: python-wheelhouse-image ## Alias target for IMAGES/bundle inclusion
+
 python-wheelhouse-smoke: ## Offline install and import smoke for all wheel groups
 	@bash examples/python-wheelhouse-smoke/run-python-wheelhouse-smoke.sh "$(REGISTRY)" "$(TAG)"
 
 python-wheelhouse-verify: ## Verify SHA256SUMS of fetched wheels
 	@docker run --rm --network none \
-	    -v "$(DATA_DIR)/python-wheels/py311:/wheels:ro" \
+	    -v "$(abspath $(DATA_DIR))/python-wheels/py311:/wheels:ro" \
 	    busybox \
-	    sh -c "cd /wheels && sha256sum -c SHA256SUMS --quiet && echo 'SHA256SUMS OK'"
+	    sh -c "cd /wheels && sha256sum -c -s SHA256SUMS && echo 'SHA256SUMS OK'"
+
+python-wheelhouse-plan: ## Show the CPython 3.11 team wheelhouse refresh plan path
+	@printf 'docs/python-311-wheelhouse-refresh.md\n'
+
+## ── Frontend Node Toolchain (Node 22 / npm cache) ───────────────────────────
+
+frontend-npm-fetch: ## Resolve frontend package-lock and populate offline npm cache
+	@bash data-bundles/fetch/fetch-frontend-npm-cache.sh "$(DATA_DIR)"
+
+frontend-node-toolchain: ## Build spt-frontend-node-toolchain carrier/toolchain image
+	@test -d "$(DATA_DIR)/frontend-npm/node22/npm-cache" && test -f "$(DATA_DIR)/frontend-npm/node22/package/package-lock.json" || \
+	    { printf '==> Frontend npm cache not found under %s/frontend-npm/node22; fetching it now\n' "$(DATA_DIR)" >&2; \
+	      $(MAKE) frontend-npm-fetch DATA_DIR="$(DATA_DIR)"; }
+	@test -f "$(DATA_DIR)/frontend-npm/node22/frontend-npm-manifest.json" || \
+	    { printf 'ERROR: frontend npm manifest is missing: %s/frontend-npm/node22/frontend-npm-manifest.json\n' "$(DATA_DIR)" >&2; \
+	      printf 'Run: FORCE_FETCH=1 make frontend-npm-fetch DATA_DIR=%s\n' "$(DATA_DIR)" >&2; exit 2; }
+	@if [ "$(abspath $(DATA_DIR))" != "$(abspath data-bundles/sources)" ]; then \
+	    printf '==> Staging frontend npm cache from %s into Docker build context\n' "$(DATA_DIR)"; \
+	    mkdir -p data-bundles/sources/frontend-npm; \
+	    rm -rf data-bundles/sources/frontend-npm/node22; \
+	    cp -a "$(DATA_DIR)/frontend-npm/node22" data-bundles/sources/frontend-npm/; \
+	fi
+	$(DOCKER_BUILD) \
+	    -t $(FRONTEND_NODE_IMAGE) \
+	    -f images/frontend-node-toolchain/Dockerfile .
+
+frontend-npm-smoke: ## Offline npm install/import smoke for frontend dependency cache
+	@bash examples/frontend-npm-smoke/run-frontend-npm-smoke.sh "$(REGISTRY)" "$(TAG)"
+
+frontend-npm-verify: ## Verify SHA256SUMS of fetched frontend npm cache
+	@docker run --rm --network none \
+	    -v "$(abspath $(DATA_DIR))/frontend-npm/node22:/frontend-npm:ro" \
+	    busybox \
+	    sh -c "cd /frontend-npm && sha256sum -c -s SHA256SUMS && echo 'frontend npm SHA256SUMS OK'"
+
+frontend-stack-plan: ## Show the frontend stack/toolchain docs
+	@printf 'docs/frontend-node-toolchain.md\n'
 
 ## ── Inspection ──────────────────────────────────────────────────────────────
 
@@ -477,6 +522,9 @@ release-smoke: ## Run full release smoke (build + verify + bundle)
 
 release-restore: ## Restore and validate a release bundle
 	@TAG="$(TAG)" REGISTRY="$(REGISTRY)" BUNDLE_DIR="$(BUNDLE_DIR)" DATA_BUNDLE_DIR="$(DATA_BUNDLE_DIR)" RESTORE_DIR="$(RESTORE_DIR)" RESTORED_DATA_DIR="$(RESTORED_DATA_DIR)" SKIP_DOCKER_LOAD="$(SKIP_DOCKER_LOAD)" SKIP_VERIFY_OFFLINE="$(SKIP_VERIFY_OFFLINE)" SKIP_DATA_EXTRACT="$(SKIP_DATA_EXTRACT)" RUN_FUNCTIONAL="$(RUN_FUNCTIONAL)" bash scripts/restore-release-bundle.sh
+
+comprehensive-smoke: ## Run broad post-build/post-release checks and write a compact report
+	@TAG="$(TAG)" REGISTRY="$(REGISTRY)" DATA_DIR="$(DATA_DIR)" BUNDLE_DIR="$(BUNDLE_DIR)" DATA_BUNDLE_DIR="$(DATA_BUNDLE_DIR)" RUN_FUNCTIONAL="$(COMPREHENSIVE_RUN_FUNCTIONAL)" RUN_WHEELHOUSE_SMOKE="$(RUN_WHEELHOUSE_SMOKE)" RUN_FRONTEND_NPM_SMOKE="$(RUN_FRONTEND_NPM_SMOKE)" RUN_RESTORE="$(RUN_RESTORE)" bash scripts/comprehensive-smoke.sh
 
 release-upload: ## Create/update GitHub release and upload assets from manifest
 	@TAG="$(TAG)" BUNDLE_DIR="$(BUNDLE_DIR)" bash scripts/release-upload-helper.sh

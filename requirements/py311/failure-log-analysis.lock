@@ -1,0 +1,36 @@
+coloredlogs==15.0.1
+    # via -r /in/failure-log-analysis.in
+dateparser==1.4.0
+    # via -r /in/failure-log-analysis.in
+deepdiff==9.0.0
+    # via -r /in/failure-log-analysis.in
+humanfriendly==10.0
+    # via coloredlogs
+jsonpath-ng==1.8.0
+    # via -r /in/failure-log-analysis.in
+loguru==0.7.3
+    # via -r /in/failure-log-analysis.in
+orderly-set==5.5.0
+    # via deepdiff
+python-dateutil==2.9.0.post0
+    # via dateparser
+python-json-logger==4.1.0
+    # via -r /in/failure-log-analysis.in
+pytz==2026.1.post1
+    # via dateparser
+rapidfuzz==3.13.0
+    # via -r /in/failure-log-analysis.in
+regex==2026.4.4
+    # via
+    #   -r /in/failure-log-analysis.in
+    #   dateparser
+ruamel-yaml==0.19.1
+    # via -r /in/failure-log-analysis.in
+six==1.17.0
+    # via python-dateutil
+structlog==25.5.0
+    # via -r /in/failure-log-analysis.in
+tomli-w==1.2.0
+    # via -r /in/failure-log-analysis.in
+tzlocal==5.3.1
+    # via dateparser

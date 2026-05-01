@@ -1,0 +1,10 @@
+# requirements/py311/testing-evidence.in
+# CPython 3.11 / Rocky 8-compatible linux_x86_64 — richer pytest evidence outputs
+pytest-json-report
+pytest-metadata
+pytest-html
+testfixtures
+junitparser
+pytest-randomly
+pytest-repeat
+pytest-rerunfailures

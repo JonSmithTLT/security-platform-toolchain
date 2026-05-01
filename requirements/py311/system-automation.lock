@@ -1,0 +1,91 @@
+annotated-doc==0.0.4
+    # via typer
+annotated-types==0.7.0
+    # via pydantic
+bcrypt==5.0.0
+    # via paramiko
+cffi==2.0.0
+    # via
+    #   cryptography
+    #   pynacl
+click==8.3.3
+    # via
+    #   -r /in/system-automation.in
+    #   typer
+colorama==0.4.6
+    # via -r /in/system-automation.in
+cryptography==47.0.0
+    # via paramiko
+decorator==5.2.1
+    # via fabric
+deprecated==1.3.1
+    # via fabric
+distro==1.9.0
+    # via -r /in/system-automation.in
+fabric==3.2.3
+    # via -r /in/system-automation.in
+filelock==3.29.0
+    # via -r /in/system-automation.in
+humanfriendly==10.0
+    # via -r /in/system-automation.in
+invoke==2.2.1
+    # via
+    #   -r /in/system-automation.in
+    #   fabric
+    #   paramiko
+markdown-it-py==4.0.0
+    # via rich
+mdurl==0.1.2
+    # via markdown-it-py
+paramiko==4.0.0
+    # via fabric
+pexpect==4.9.0
+    # via -r /in/system-automation.in
+platformdirs==4.9.6
+    # via -r /in/system-automation.in
+plumbum==1.10.0
+    # via -r /in/system-automation.in
+psutil==7.1.1
+    # via -r /in/system-automation.in
+ptyprocess==0.7.0
+    # via pexpect
+pycparser==3.0
+    # via cffi
+pydantic==2.13.3
+    # via python-on-whales
+pydantic-core==2.46.3
+    # via pydantic
+pygments==2.20.0
+    # via rich
+pynacl==1.6.2
+    # via paramiko
+python-crontab==3.3.0
+    # via -r /in/system-automation.in
+python-on-whales==0.81.0
+    # via -r /in/system-automation.in
+rich==15.0.0
+    # via
+    #   -r /in/system-automation.in
+    #   typer
+schedule==1.2.2
+    # via -r /in/system-automation.in
+sh==2.2.2
+    # via -r /in/system-automation.in
+shellingham==1.5.4
+    # via
+    #   -r /in/system-automation.in
+    #   typer
+subprocess-tee==0.4.2
+    # via -r /in/system-automation.in
+typer==0.25.1
+    # via -r /in/system-automation.in
+typing-extensions==4.15.0
+    # via
+    #   pydantic
+    #   pydantic-core
+    #   python-on-whales
+    #   typing-inspection
+typing-inspection==0.4.2
+    # via pydantic
+wrapt==2.1.2
+    # via deprecated

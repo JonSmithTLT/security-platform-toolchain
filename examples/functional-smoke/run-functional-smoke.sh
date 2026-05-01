@@ -95,10 +95,56 @@ assert_contract() {
         python3 -c "import json; data=json.load(open('/check.json')); assert data['error_count'] == 0, data"
 }
 
+write_coverage_inventory() {
+    mkdir -p "${OUT_DIR}"
+    cat > "${OUT_DIR}/functional-smoke-coverage.txt" <<'TXT'
+covered:
+  base
+  python-wheelhouse-py311
+  python-runtime
+  schema-validator
+  result-normalizers
+  c-cpp-analysis
+  coverage-tools
+  harness-builder
+  fuzzing
+  protocol-fuzzing
+  crash-triage
+  replay-runner
+  sbom
+  secrets
+  image-scanner
+  re-lightweight
+  yara
+  intel-ingest
+  rag-indexer
+  diff-impact
+  dependency-review
+  ghidra-base
+  ghidra-mcp
+  eval-runner
+  gitnexus
+  semgrep
+  corpus-tools
+  symbolic
+
+not-covered-in-functional-smoke:
+  codeql
+  ghidra-exporter
+  osv-scanner
+
+notes:
+  ghidra-base is exercised indirectly through ghidra-mcp.
+  codeql and ghidra-exporter are intentionally heavier than the default functional smoke.
+  osv-scanner needs a valid offline OSV database cache for a meaningful functional pass.
+TXT
+}
+
 trap repair_artifact_ownership EXIT
 repair_artifact_ownership
 rm -rf "${OUT_DIR}"
 mkdir -p "${FIXTURE_DIR}"
+write_coverage_inventory
 
 cat > "${FIXTURE_DIR}/app.py" <<'PY'
 import os
@@ -164,6 +210,15 @@ cat > "${FIXTURE_DIR}/requirements.txt" <<'REQ'
 requests==2.31.0
 REQ
 
+cat > "${FIXTURE_DIR}/replay-target.sh" <<'SH'
+#!/usr/bin/env bash
+if grep -q CRSH "$1"; then
+    kill -ABRT $$
+fi
+exit 0
+SH
+chmod +x "${FIXTURE_DIR}/replay-target.sh"
+
 cat > "${FIXTURE_DIR}/secrets.txt" <<'TXT'
 AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
 -----BEGIN RSA PRIVATE KEY-----
@@ -193,6 +248,57 @@ mkdir -p "${OUT_DIR}/eval"
 cat > "${OUT_DIR}/eval/cases.jsonl" <<JSONL
 {"name":"advisory mentions CWE","file":"${OUT_DIR}/intel/advisory.md","contains":"CWE-78"}
 JSONL
+
+log "Python runtime imports core offline utilities"
+docker run --rm --network none \
+    "$(image python-runtime)" \
+    python3 -c "import click, jsonschema, requests, rich, typer, yaml; print('python-runtime imports OK')"
+
+log "Python wheelhouse carrier exposes py311 locks and wheels"
+docker run --rm --network none \
+    "$(image python-wheelhouse-py311)" \
+    sh -c 'test -f /requirements/py311/core-python.lock && test -d /wheelhouse/py311/core-python && find /wheelhouse/py311/core-python -name "*.whl" | grep -q .'
+
+mkdir -p "${OUT_DIR}/dependency-db"
+python3 - "${OUT_DIR}/dependency-db/spt-cve-index.sqlite" <<'PY'
+import sqlite3
+import sys
+
+db = sys.argv[1]
+conn = sqlite3.connect(db)
+conn.executescript(
+    """
+    CREATE TABLE packages (name TEXT, cve TEXT, source TEXT, ranges_json TEXT);
+    CREATE TABLE vulnerabilities (
+        cve TEXT PRIMARY KEY,
+        summary TEXT,
+        cvss_score REAL,
+        cvss_vector TEXT,
+        source_nvd INTEGER,
+        source_osv INTEGER,
+        source_ghsa INTEGER,
+        source_kev INTEGER
+    );
+    CREATE TABLE epss (cve TEXT PRIMARY KEY, epss REAL, percentile REAL);
+    CREATE TABLE kev (cve TEXT PRIMARY KEY, date_added TEXT);
+    CREATE TABLE aliases (cve TEXT, alias TEXT);
+    INSERT INTO packages VALUES ('requests', 'CVE-2099-0001', 'fixture', '[]');
+    INSERT INTO vulnerabilities VALUES (
+        'CVE-2099-0001',
+        'Functional smoke fixture dependency match',
+        7.5,
+        'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N',
+        1,
+        0,
+        0,
+        0
+    );
+    INSERT INTO epss VALUES ('CVE-2099-0001', 0.42, 0.9);
+    """
+)
+conn.commit()
+conn.close()
+PY
 
 log "Semgrep detects fixture findings"
 mkdir -p "${OUT_DIR}/semgrep"
@@ -374,6 +480,24 @@ finalize_artifacts crash-triage "${OUT_DIR}/crash-triage"
 assert_contract crash-triage "${OUT_DIR}/crash-triage"
 assert_file "${OUT_DIR}/crash-triage/results/crash-triage/normalized/crash-triage.json"
 
+log "Replay runner reproduces a crash input offline"
+mkdir -p "${OUT_DIR}/replay-runner/crashes" "${OUT_DIR}/replay-runner/artifacts"
+printf 'CRSH' > "${OUT_DIR}/replay-runner/crashes/crash-1"
+docker run --rm --network none \
+    -e JOB_ID=functional-replay-runner \
+    -e ARTIFACTS_DIR=/artifacts \
+    -e REPLAY_TARGET=/workspace/replay-target.sh \
+    -e CRASH_DIR=/crashes \
+    -e REPLAY_TIMEOUT=5 \
+    -v "${FIXTURE_DIR}:/workspace:ro" \
+    -v "${OUT_DIR}/replay-runner/crashes:/crashes:ro" \
+    -v "${OUT_DIR}/replay-runner/artifacts:/artifacts" \
+    "$(image replay-runner)" || true
+finalize_artifacts replay-runner "${OUT_DIR}/replay-runner/artifacts"
+assert_contract replay-runner "${OUT_DIR}/replay-runner/artifacts"
+assert_file "${OUT_DIR}/replay-runner/artifacts/results/replay-runner/normalized/replay-result.json"
+assert_json_number_gt "${OUT_DIR}/replay-runner/artifacts/results/replay-runner/normalized/replay-result.json" "len(data.get('results', []))" 0
+
 log "Coverage tools emit coverage artifacts"
 mkdir -p "${OUT_DIR}/coverage-tools"
 docker run --rm --network none \
@@ -451,6 +575,42 @@ finalize_artifacts diff-impact "${OUT_DIR}/diff-impact"
 assert_contract diff-impact "${OUT_DIR}/diff-impact"
 assert_file "${OUT_DIR}/diff-impact/results/diff-impact/raw/impact.json"
 
+log "Dependency review queries a local CVE index offline"
+mkdir -p "${OUT_DIR}/dependency-review"
+docker run --rm --network none \
+    -e JOB_ID=functional-dependency-review \
+    -e ARTIFACTS_DIR=/artifacts \
+    -e TARGET_REPO=/workspace \
+    -e DEPENDENCY_INPUT=/workspace/requirements.txt \
+    -e CVE_INDEX_DB=/data/spt-cve-index.sqlite \
+    -v "${FIXTURE_DIR}:/workspace:ro" \
+    -v "${OUT_DIR}/dependency-db/spt-cve-index.sqlite:/data/spt-cve-index.sqlite:ro" \
+    -v "${OUT_DIR}/dependency-review:/artifacts" \
+    "$(image dependency-review)"
+finalize_artifacts dependency-review "${OUT_DIR}/dependency-review"
+assert_contract dependency-review "${OUT_DIR}/dependency-review"
+assert_file "${OUT_DIR}/dependency-review/results/dependency-review/raw/enrichment-candidates.json"
+assert_json_number_gt "${OUT_DIR}/dependency-review/results/dependency-review/tool-result.json" "len(data.get('findings', []))" 0
+
+log "Corpus tools deduplicate a tiny corpus offline"
+mkdir -p "${OUT_DIR}/corpus/input" "${OUT_DIR}/corpus/artifacts"
+printf 'seed-a' > "${OUT_DIR}/corpus/input/a"
+printf 'seed-a' > "${OUT_DIR}/corpus/input/a-copy"
+printf 'seed-b' > "${OUT_DIR}/corpus/input/b"
+docker run --rm --network none \
+    -e JOB_ID=functional-corpus-tools \
+    -e ARTIFACTS_DIR=/artifacts \
+    -e CORPUS_MODE=deduplicate \
+    -e CORPUS_DIR=/corpus-in \
+    -e CORPUS_OUT=/artifacts/corpus-out \
+    -v "${OUT_DIR}/corpus/input:/corpus-in:ro" \
+    -v "${OUT_DIR}/corpus/artifacts:/artifacts" \
+    "$(image corpus-tools)"
+finalize_artifacts corpus-tools "${OUT_DIR}/corpus/artifacts"
+assert_contract corpus-tools "${OUT_DIR}/corpus/artifacts"
+assert_file "${OUT_DIR}/corpus/artifacts/results/corpus-tools/normalized/corpus-summary.json"
+assert_json_number_gt "${OUT_DIR}/corpus/artifacts/results/corpus-tools/normalized/corpus-summary.json" "data.get('output_file_count', 0)" 0
+
 log "GitNexus indexes a real git repo with offline Ladybug extensions"
 compgen -G "${DATA_DIR}/ladybug-extensions/*/*/fts/libfts.lbug_extension" >/dev/null || fail "missing LadybugDB fts extension under ${DATA_DIR}/ladybug-extensions"
 compgen -G "${DATA_DIR}/ladybug-extensions/*/*/vector/libvector.lbug_extension" >/dev/null || fail "missing LadybugDB vector extension under ${DATA_DIR}/ladybug-extensions"
@@ -524,5 +684,20 @@ assert_contract ghidra-mcp "${OUT_DIR}/ghidra-mcp"
 assert_file "${OUT_DIR}/ghidra-mcp/results/ghidra-mcp/raw/environment.json"
 assert_file "${OUT_DIR}/ghidra-mcp/results/ghidra-mcp/raw/bridge-help.txt"
 assert_file "${OUT_DIR}/ghidra-mcp/results/ghidra-mcp/raw/python-mcp-sdk.txt"
+
+log "Symbolic image runs angr against a tiny binary"
+mkdir -p "${OUT_DIR}/symbolic"
+docker run --rm --network none \
+    -e JOB_ID=functional-symbolic \
+    -e ARTIFACTS_DIR=/artifacts \
+    -v "${FIXTURE_DIR}:/src:ro" \
+    -v "${OUT_DIR}/symbolic:/artifacts" \
+    "$(image symbolic)" \
+    bash -lc "gcc -g -O0 -o /tmp/symbolic-target /src/vuln.c && TARGET_BINARY=/tmp/symbolic-target SYMBOLIC_TIMEOUT=20 ARTIFACTS_DIR=/artifacts run-symbolic"
+finalize_artifacts symbolic "${OUT_DIR}/symbolic"
+assert_contract symbolic "${OUT_DIR}/symbolic"
+assert_file "${OUT_DIR}/symbolic/results/symbolic/raw/angr-results.json"
+assert_json_number_gt "${OUT_DIR}/symbolic/results/symbolic/raw/angr-results.json" "data.get('states_active', 0) + data.get('states_deadended', 0) + data.get('states_errored', 0) + data.get('states_unconstrained', 0)" 0
+assert_file "${OUT_DIR}/symbolic/results/symbolic/normalized/symbolic-summary.json"
 
 log "Functional smoke test passed"

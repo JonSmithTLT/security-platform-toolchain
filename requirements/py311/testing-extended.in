@@ -1,0 +1,15 @@
+# requirements/py311/testing-extended.in
+# CPython 3.11 / Rocky 8-compatible linux_x86_64 — extended test helpers and mocks
+pytest-xdist
+pytest-rerunfailures
+pytest-benchmark
+pytest-httpx
+requests-mock
+responses
+respx
+factory-boy
+faker
+freezegun
+vcrpy
+docker
+testcontainers

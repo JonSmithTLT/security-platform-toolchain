@@ -1,0 +1,8 @@
+# requirements/py311/fuzzing-optional.in
+# CPython 3.11 / Rocky 8-compatible linux_x86_64 — Python fuzzing/property test helpers
+# Keep this optional: native fuzzing packages often need host-specific runtime validation.
+hypothesis
+pytest-randomly
+pytest-repeat
+faker
+atheris

@@ -1,0 +1,90 @@
+beautifulsoup4==4.14.3
+    # via -r /in/security-parsers.in
+bitstruct==8.22.1
+    # via -r /in/security-parsers.in
+cbor2==5.9.0
+    # via -r /in/security-parsers.in
+cffi==2.0.0
+    # via cryptography
+charset-normalizer==3.4.7
+    # via pdfminer-six
+colorclass==2.2.2
+    # via oletools
+construct==2.10.70
+    # via
+    #   -r /in/security-parsers.in
+    #   construct-typing
+construct-typing==0.7.0
+    # via -r /in/security-parsers.in
+cryptography==47.0.0
+    # via
+    #   msoffcrypto-tool
+    #   pdfminer-six
+defusedxml==0.7.1
+    # via -r /in/security-parsers.in
+easygui==0.98.3
+    # via oletools
+et-xmlfile==2.0.0
+    # via openpyxl
+filetype==1.2.0
+    # via -r /in/security-parsers.in
+ijson==3.5.0
+    # via -r /in/security-parsers.in
+lxml==6.1.0
+    # via
+    #   -r /in/security-parsers.in
+    #   python-docx
+    #   python-pptx
+msgpack==1.1.2
+    # via -r /in/security-parsers.in
+msoffcrypto-tool==6.0.0
+    # via
+    #   -r /in/security-parsers.in
+    #   oletools
+olefile==0.47
+    # via
+    #   -r /in/security-parsers.in
+    #   msoffcrypto-tool
+    #   oletools
+oletools==0.60.2
+    # via
+    #   -r /in/security-parsers.in
+    #   pcodedmp
+openpyxl==3.1.5
+    # via -r /in/security-parsers.in
+orjson==3.11.8
+    # via -r /in/security-parsers.in
+pcodedmp==1.2.6
+    # via oletools
+pdfminer-six==20260107
+    # via -r /in/security-parsers.in
+pillow==12.2.0
+    # via python-pptx
+pycparser==3.0
+    # via cffi
+pyparsing==3.3.2
+    # via oletools
+pypdf==6.10.2
+    # via -r /in/security-parsers.in
+python-docx==1.2.0
+    # via -r /in/security-parsers.in
+python-magic==0.4.27
+    # via -r /in/security-parsers.in
+python-pptx==1.0.2
+    # via -r /in/security-parsers.in
+soupsieve==2.8.3
+    # via beautifulsoup4
+typing-extensions==4.15.0
+    # via
+    #   beautifulsoup4
+    #   construct-typing
+    #   python-docx
+    #   python-pptx
+ujson==5.10.0
+    # via -r /in/security-parsers.in
+xlsxwriter==3.2.9
+    # via
+    #   -r /in/security-parsers.in
+    #   python-pptx
+xmltodict==1.0.4
+    # via -r /in/security-parsers.in
