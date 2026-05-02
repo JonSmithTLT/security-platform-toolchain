@@ -27,8 +27,8 @@ data-bundles/
 │   ├── codeql-packs/
 │   └── vendor-advisories/
 └── out/
-    ├── spt-data-bundle-<TAG>.tar
-    └── spt-data-bundle-<TAG>.tar.sha256
+    ├── spt-data-bundle-<TAG>.tar.gz
+    └── spt-data-bundle-<TAG>.tar.gz.sha256
 ```
 
 ## Connected-Side Flow
@@ -67,7 +67,7 @@ make data-bundle-sanitized TAG=2026-04-26
 
 This writes:
 
-- `data-bundles/out/spt-data-sanitized-bundle-<TAG>.tar`
+- `data-bundles/out/spt-data-sanitized-bundle-<TAG>.tar.gz`
 - `data-bundles/out/spt-data-sanitized-bundle-<TAG>.manifest.json`
 - `data-bundles/out/spt-data-sanitized-bundle-<TAG>.source-checksums.sha256`
 - `data-bundles/out/spt-data-sanitized-bundle-<TAG>.sanitization-report.json`
@@ -80,10 +80,10 @@ indexing and triage.
 
 ```bash
 sha256sum -c spt-data-bundle-2026-04-25.parts.sha256
-cat spt-data-bundle-2026-04-25.tar.part-* > spt-data-bundle-2026-04-25.tar
-sha256sum -c spt-data-bundle-2026-04-25.tar.sha256
+cat spt-data-bundle-2026-04-25.tar.gz.part-* > spt-data-bundle-2026-04-25.tar.gz
+sha256sum -c spt-data-bundle-2026-04-25.tar.gz.sha256
 mkdir -p /opt/spt-data
-tar -xf spt-data-bundle-2026-04-25.tar -C /opt/spt-data
+tar -xzf spt-data-bundle-2026-04-25.tar.gz -C /opt/spt-data
 ```
 
 The data bundle is optional. Import the image bundle by itself for image-only
@@ -233,7 +233,7 @@ organization-approved mirror or a narrower language set.
 The generic archive produced by `make data-bundle` is:
 
 ```text
-spt-data-bundle-<TAG>.tar
+spt-data-bundle-<TAG>.tar.gz
 ```
 
 Use the names below only if you publish explicit release variants. Full bundles

@@ -110,7 +110,7 @@ ALLOW_EGRESS_AUDIT_FINDINGS ?= 0
 
 .PHONY: all build-all build-report registry-cache-build help \
     doctor native-worktree native-release-smoke \
-    lint test test-normalizers test-offline verify-offline \
+    dev-tools lint test test-normalizers test-offline verify-offline \
 	functional-smoke smoke-honggfuzz data-bundle-smoke gitnexus-ladybug-smoke gitnexus-git-smoke offline-egress-audit \
     release-smoke release-restore comprehensive-smoke release-upload release-summary release-tui release-ledger-summary release-evidence release-provenance release-sign-images release-verify-image-signatures release-attest-images release-sboms-cache-store release-sboms-cache-restore release-sboms-cache-info release-policy-check scan-platform container-structure-test \
     python-runtime \
@@ -250,6 +250,9 @@ symbolic: python-runtime ## Build spt-symbolic
 
 ## ── Lint ────────────────────────────────────────────────────────────────────
 
+dev-tools: ## Install local Python validation helpers such as pytest and shellcheck
+	@python3 -m pip install -r requirements/dev-tools.txt
+
 lint: ## Lint Dockerfiles (hadolint), shell scripts (shellcheck), schemas, and Semgrep rules
 	@echo "==> Linting Dockerfiles with hadolint"
 	@for img in $(IMAGES); do \
@@ -257,7 +260,7 @@ lint: ## Lint Dockerfiles (hadolint), shell scripts (shellcheck), schemas, and S
 	    hadolint images/$$img/Dockerfile || exit 1; \
 	done
 	@echo "==> Linting shell scripts with shellcheck"
-	@find common/ -name '*.sh' -exec shellcheck {} +
+	@find common scripts data-bundles/fetch examples images -type f -name '*.sh' -exec shellcheck --severity=warning {} +
 	@echo "==> Validating JSON schemas"
 	@find schemas/ -name '*.json' -exec python3 -c \
 	    "import json,sys; json.load(open(sys.argv[1])); print('OK', sys.argv[1])" {} \;
@@ -275,7 +278,7 @@ test: ## Smoke-test all images and run unit tests
 	    docker run --rm $(REGISTRY)/$$name:$(TAG) /bin/true || exit 1; \
 	done
 	@echo "==> Running emit-job-report.py unit tests"
-	@python3 -m pytest common/ -v
+	@python3 -m pytest common/ tests/ -v
 	@echo "Tests passed."
 
 test-normalizers: ## Run golden fixture contract tests for result normalizers

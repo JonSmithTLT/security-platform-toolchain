@@ -15,6 +15,9 @@ IMAGE="${REGISTRY}/spt-python-wheelhouse-py311:${TAG}"
 fail() { printf 'python-wheelhouse-smoke failed: %s\n' "$*" >&2; exit 1; }
 pass() { printf '[PASS] %s\n' "$*"; }
 warn() { printf '[WARN] %s\n' "$*" >&2; }
+cleanup_extract() {
+    docker rm -f "${EXTRACT_ID:-}" >/dev/null 2>&1 || true
+}
 
 rm -rf "${OUT_DIR}"
 mkdir -p "${OUT_DIR}"
@@ -22,7 +25,7 @@ mkdir -p "${OUT_DIR}"
 # Extract wheelhouse from image
 printf '==> Extracting wheelhouse from %s\n' "${IMAGE}"
 EXTRACT_ID="$(docker create "${IMAGE}")"
-trap "docker rm -f '${EXTRACT_ID}' 2>/dev/null || true" EXIT
+trap cleanup_extract EXIT
 mkdir -p "${OUT_DIR}/wheelhouse" "${OUT_DIR}/requirements"
 docker cp "${EXTRACT_ID}:/wheelhouse/py311/." "${OUT_DIR}/wheelhouse/"
 docker cp "${EXTRACT_ID}:/requirements/py311/." "${OUT_DIR}/requirements/"
@@ -357,8 +360,6 @@ done
 
 # Experimental groups are carried in the artifact but do not have a supported
 # pass/fail promise until runtime probes pass on representative hosts.
-for group in ml-runtime-light; do
-    run_group_smoke "${group}" true true
-done
+run_group_smoke "ml-runtime-light" true true
 
 printf '\n==> python-wheelhouse-py311 smoke passed: %s\n' "${OUT_DIR}"

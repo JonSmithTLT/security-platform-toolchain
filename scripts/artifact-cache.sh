@@ -69,7 +69,7 @@ JSON
 
     # Write checksums of cached content (excluding internals)
     (
-        cd "${entry}"
+        cd "${entry}" || exit
         mapfile -d '' files < <(find . -type f ! -name '.spt-*' -print0 | sort -z)
         if ((${#files[@]} > 0)); then
             printf '%s\0' "${files[@]}" | xargs -0 sha256sum > .spt-checksums

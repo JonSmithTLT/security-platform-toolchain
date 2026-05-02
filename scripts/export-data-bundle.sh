@@ -9,11 +9,13 @@ DATA_DIR="${DATA_DIR:-data-bundles/sources}"
 DATA_BUNDLE_DIR="${DATA_BUNDLE_DIR:-data-bundles/out}"
 SPLIT_SIZE="${SPLIT_SIZE:-1900M}"
 SANITIZED="${SANITIZED:-false}"
-DATA_BUNDLE_NAME="${DATA_BUNDLE_NAME:-spt-data-bundle}"
+DATA_BUNDLE_NAME="${DATA_BUNDLE_NAME:-}"
 SKIP_FETCH="${SKIP_FETCH:-0}"
 SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct 2>/dev/null || date +%s)}"
 if [[ "${SANITIZED}" == "true" ]]; then
     DATA_BUNDLE_NAME="${DATA_BUNDLE_NAME:-spt-data-sanitized-bundle}"
+else
+    DATA_BUNDLE_NAME="${DATA_BUNDLE_NAME:-spt-data-bundle}"
 fi
 TAR="${DATA_BUNDLE_DIR}/${DATA_BUNDLE_NAME}-${TAG}.tar.gz"
 MANIFEST="${DATA_BUNDLE_DIR}/${DATA_BUNDLE_NAME}-${TAG}.manifest.json"
@@ -24,7 +26,7 @@ if [[ "${SKIP_FETCH}" != "1" ]]; then
 fi
 
 if [[ "${SANITIZED}" == "true" ]]; then
-    make data-bundle-sanitized TAG="${TAG}" DATA_DIR="${DATA_DIR}" DATA_BUNDLE_DIR="${DATA_BUNDLE_DIR}" SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH}"
+    make data-bundle-sanitized TAG="${TAG}" DATA_DIR="${DATA_DIR}" DATA_BUNDLE_DIR="${DATA_BUNDLE_DIR}" DATA_SANITIZED_BUNDLE_NAME="${DATA_BUNDLE_NAME}" SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH}"
 else
     make data-bundle TAG="${TAG}" DATA_DIR="${DATA_DIR}" DATA_BUNDLE_DIR="${DATA_BUNDLE_DIR}" DATA_BUNDLE_NAME="${DATA_BUNDLE_NAME}" SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH}"
 fi
