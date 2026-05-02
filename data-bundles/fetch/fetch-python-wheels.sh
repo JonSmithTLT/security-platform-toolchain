@@ -47,11 +47,12 @@ REQUIRED_GROUPS=(
 
 OPTIONAL_GROUPS=(
     data-science-optional
+    api-service-standard
     dependency-audit
     failure-log-analysis
     fuzzing-optional
     large-artifact-compression
-    ml-runtime-light
+    llm-client-optional
     network-os-evidence
     networking-protocol
     profiling-debugging
@@ -66,12 +67,16 @@ OPTIONAL_GROUPS=(
     heavy-security-optional
 )
 
+EXPERIMENTAL_GROUPS=(
+    ml-runtime-light
+)
+
 mkdir -p "${LOCK_ROOT}"
 mkdir -p "${LOG_DIR}"
 mkdir -p "${WHEELS_ROOT}"
 restore_host_ownership "${WHEELS_ROOT}"
 restore_host_ownership "${LOCK_ROOT}"
-for group in "${REQUIRED_GROUPS[@]}" "${OPTIONAL_GROUPS[@]}"; do
+for group in "${REQUIRED_GROUPS[@]}" "${OPTIONAL_GROUPS[@]}" "${EXPERIMENTAL_GROUPS[@]}"; do
     mkdir -p "${WHEELS_ROOT}/${group}"
 done
 
@@ -108,12 +113,13 @@ printf '==> Wheelhouse fetch log: %s\n' "${LOG_FILE}"
 
 set +e
 docker run --rm -i \
+    -e ALLOW_OPTIONAL_FAILURES="${ALLOW_OPTIONAL_FAILURES:-0}" \
     -v "${IN_ROOT}:/in:ro" \
     -v "${LOCK_ROOT}:/locks" \
     -v "${WHEELS_ROOT}:/wheels" \
     python:3.11-slim \
     python3 - 2>&1 <<'PYEOF' | tee "${LOG_FILE}"
-import subprocess, sys, os, json, hashlib, datetime, pathlib
+import subprocess, sys, os, json, hashlib, datetime, pathlib, shutil
 
 REQUIRED = [
     "core-python",
@@ -126,11 +132,12 @@ REQUIRED = [
 ]
 OPTIONAL = [
     "data-science-optional",
+    "api-service-standard",
     "dependency-audit",
     "failure-log-analysis",
     "fuzzing-optional",
     "large-artifact-compression",
-    "ml-runtime-light",
+    "llm-client-optional",
     "network-os-evidence",
     "networking-protocol",
     "profiling-debugging",
@@ -143,6 +150,9 @@ OPTIONAL = [
     "packaging-build",
     "reporting-extended",
     "heavy-security-optional",
+]
+EXPERIMENTAL = [
+    "ml-runtime-light",
 ]
 
 def run(cmd, **kw):
@@ -165,15 +175,20 @@ print("Installing pip-tools ...", flush=True)
 run_checked([sys.executable, "-m", "pip", "install", "--quiet", "--upgrade", "pip", "pip-tools"], step="pip-tools install")
 
 failed_optional = []
+failed_experimental = []
+allow_optional_failures = os.environ.get("ALLOW_OPTIONAL_FAILURES") == "1"
 
-for group in REQUIRED + OPTIONAL:
+for group in REQUIRED + OPTIONAL + EXPERIMENTAL:
     optional = group in OPTIONAL
+    experimental = group in EXPERIMENTAL
     in_file  = f"/in/{group}.in"
     lock_file = f"/locks/{group}.lock"
     wheel_dir = f"/wheels/{group}"
+    shutil.rmtree(wheel_dir, ignore_errors=True)
     os.makedirs(wheel_dir, exist_ok=True)
 
-    print(f"\n==> Group: {group}{'  [optional]' if optional else ''}", flush=True)
+    label = "  [experimental]" if experimental else ("  [optional]" if optional else "")
+    print(f"\n==> Group: {group}{label}", flush=True)
 
     try:
         run_checked([
@@ -205,6 +220,9 @@ for group in REQUIRED + OPTIONAL:
         if optional:
             print(f"WARNING: optional group '{group}' failed — {exc}", file=sys.stderr, flush=True)
             failed_optional.append(group)
+        elif experimental:
+            print(f"WARNING: experimental group '{group}' failed — {exc}", file=sys.stderr, flush=True)
+            failed_experimental.append(group)
         else:
             print(f"ERROR: required group '{group}' failed", file=sys.stderr)
             sys.exit(1)
@@ -247,6 +265,12 @@ print(f"  {len(manifest)} entries", flush=True)
 
 if failed_optional:
     print(f"\nWARN: optional groups that failed: {', '.join(failed_optional)}", file=sys.stderr)
+    if not allow_optional_failures:
+        print("ERROR: supported optional groups must pass. Set ALLOW_OPTIONAL_FAILURES=1 only for curation runs.", file=sys.stderr)
+        sys.exit(1)
+
+if failed_experimental:
+    print(f"\nWARN: experimental groups that failed: {', '.join(failed_experimental)}", file=sys.stderr)
 
 print("\n==> fetch-python-wheels complete", flush=True)
 PYEOF

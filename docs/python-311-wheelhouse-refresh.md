@@ -94,7 +94,7 @@ Use this table as the working inventory format. It deliberately separates
 | `python-magic` | TBD | From `security-research-python.lock` | Security analysis | `requirements/py311/security-research-python.in` | TBD | `py3-none-any` expected | None | Any | No | `libmagic` required at runtime | Yes if used | Already documented runtime OS dependency |
 | `numpy` | TBD | From optional locks | Data science/RAG/ML | multiple `requirements/py311/*.in` | TBD | TBD | `cp311` expected | manylinux | No | BLAS/OpenMP wheel behavior | Optional | Keep optional unless a project requires it |
 | `pyarrow` | TBD | From `data-science-optional.lock` | Data processing | `requirements/py311/data-science-optional.in` | TBD | TBD | `cp311` expected | manylinux | No | Native binary size/runtime libs | Optional | Heavy optional group |
-| `onnxruntime` | TBD | From `ml-runtime-light.lock` | ML inference | `requirements/py311/ml-runtime-light.in` | TBD | TBD | `cp311` expected | manylinux | No | CPU feature baseline | Optional | Heavy optional group |
+| `onnxruntime` | TBD | From `ml-runtime-light.lock` | ML inference | `requirements/py311/ml-runtime-light.in` | TBD | TBD | `cp311` expected | manylinux | No | CPU feature baseline | Experimental | Heavy optional group; runtime probe must pass before support |
 
 Inventory commands to start from this repo:
 
@@ -182,18 +182,20 @@ groups under `requirements/py311/`: `networking-protocol.in`,
 by `testing-evidence.in`, `failure-log-analysis.in`, `dependency-audit.in`,
 `profiling-debugging.in`, `network-os-evidence.in`,
 `large-artifact-compression.in`, `ci-integration.in`,
-`static-analysis-python.in`, and `fuzzing-optional.in`.
+`static-analysis-python.in`, `fuzzing-optional.in`, and
+`llm-client-optional.in`.
 
 Initial broad-catalog fetch results:
 
 | Result | Package/group |
 |---|---|
-| Included after compatibility pin | `cbor2<=5.9.0`, `ujson<=5.10.0`, `lief<=0.12.3`, `psutil<=7.1.1`, `z3-solver<=4.15.4.0`, `rapidfuzz<=3.13.0`, `duckdb<=1.2.2`, `pyzmq<=26.4.0`, `line-profiler<=5.0.0` |
-| Excluded from binary-only candidate | `hexdump`, `ropper`/`filebytes`, `keystone-engine`, `watchdog`, `python-jenkins`/`multi-key-dict` |
+| Included after compatibility pin | `cbor2<=5.9.0`, `ujson<=5.10.0`, `lief<=0.12.3`, `psutil<=7.1.1`, `z3-solver<=4.15.4.0`, `rapidfuzz<=3.13.0`, `duckdb<=1.2.2`, `pyzmq<=26.4.0`, `line-profiler<=5.0.0`, `httptools<=0.6.4` |
+| Included in latest expansion | `orjson` and `pydantic-settings` in core, `tblib`, `stack-data`, `aiofiles`, `trio`, `pymongo`, `mistune`, `html5lib`, `bleach`, `python-frontmatter`, `pydot`, `simplejson`, `prompt-toolkit`, `questionary`, `textual`, optional `api-service-standard` with `uvicorn[standard]`, `uvloop`, `httptools`, `websockets`, `watchfiles`, optional `llm-client-optional` with `openai` and `anthropic` SDK adapters |
+| Excluded from binary-only candidate | `hexdump`, `ropper`/`filebytes`, `keystone-engine`, `watchdog`, `python-jenkins`/`multi-key-dict`, `pymaven`, `aiodns`/`pycares`, `python-afl`, `python-systemd`, `netifaces`, `python-snappy`, `scalene` |
 | Needs OS/runtime validation | `python-magic` with `libmagic`, `weasyprint` with Pango/GObject libraries, `onnxruntime` executable-stack policy, `pyshark` with `tshark` |
 
-Current generated candidate size is about 660 MB of wheel files and 670 wheels
-across 25 groups. This is acceptable for a data-carrier artifact; downstream
+Current generated candidate size is about 679 MB of wheel files and 738 wheels
+across 27 groups. This is acceptable for a data-carrier artifact; downstream
 runtime images should still copy only the specific groups they need.
 
 Packages with large native footprints or external system dependencies should
@@ -297,7 +299,7 @@ Manifest status values should distinguish:
 | `candidate` | Included in current candidate wheelhouse |
 | `validated` | Installed and smoked for py311 Linux x86_64 |
 | `validated-with-os-deps` | Python wheel passed, external OS library required |
-| `optional` | Non-blocking group passed or is available |
+| `optional` | Supported optional group that passed fetch and smoke validation |
 | `experimental` | Available but not a supported paved road |
 | `blocked` | Missing/incompatible/conflicting |
 

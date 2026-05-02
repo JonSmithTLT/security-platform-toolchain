@@ -92,6 +92,35 @@ void zodResolver;
 void toast;
 console.log("frontend npm imports OK");
 NODEEOF
+        mkdir -p src
+        cat > index.html <<'"'"'HTMLEOF'"'"'
+<div id="root"></div>
+<script type="module" src="/src/main.jsx"></script>
+HTMLEOF
+        cat > src/main.jsx <<'"'"'JSEOF'"'"'
+import React from "react";
+import { createRoot } from "react-dom/client";
+import { QueryClient } from "@tanstack/react-query";
+import { z } from "zod";
+import { clsx } from "clsx";
+import { Search } from "lucide-react";
+
+const schema = z.object({ status: z.literal("ready") });
+schema.parse({ status: "ready" });
+new QueryClient();
+
+function App() {
+  return React.createElement(
+    "main",
+    { className: clsx("app-shell") },
+    React.createElement(Search, { size: 16 }),
+    React.createElement("span", null, "REVELATIONS offline build smoke")
+  );
+}
+
+createRoot(document.getElementById("root")).render(React.createElement(App));
+JSEOF
+        npm run build --offline --ignore-scripts --cache /opt/spt-frontend/npm-cache
     ' || fail "offline npm install/import smoke failed"
 
-pass "frontend npm offline install/import smoke"
+pass "frontend npm offline install/import/build smoke"

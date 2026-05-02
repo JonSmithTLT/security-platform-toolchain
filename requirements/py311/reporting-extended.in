@@ -2,11 +2,15 @@
 # CPython 3.11 / Rocky 8-compatible linux_x86_64 — docs, reports, and rich output
 jinja2
 markdown
+mistune
 pygments
 rich
 tabulate
 beautifulsoup4
+html5lib
 lxml
+bleach
+python-frontmatter
 python-docx
 python-pptx
 openpyxl
@@ -14,3 +18,4 @@ xlsxwriter
 pypdf
 reportlab
 weasyprint
+pydot

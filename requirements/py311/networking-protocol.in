@@ -2,8 +2,10 @@
 # CPython 3.11 / Rocky 8-compatible linux_x86_64 — networking and protocol helpers
 requests
 httpx
+aiofiles
 aiohttp
 websockets
+trio
 h11
 h2
 hyperframe

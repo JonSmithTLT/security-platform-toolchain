@@ -16,10 +16,13 @@ openpyxl
 xlsxwriter
 lxml
 beautifulsoup4
+html5lib
+bleach
 defusedxml
 xmltodict
 ijson
 orjson
+simplejson
 # Newer ujson releases may not publish manylinux_2_17_x86_64 cp311 wheels.
 ujson<=5.10.0
 msgpack

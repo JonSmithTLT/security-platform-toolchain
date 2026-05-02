@@ -1,5 +1,7 @@
 annotated-doc==0.0.4
     # via typer
+annotated-types==0.7.0
+    # via pydantic
 attrs==26.1.0
     # via
     #   -r /in/core-python.in
@@ -33,14 +35,24 @@ markupsafe==3.0.3
     # via jinja2
 mdurl==0.1.2
     # via markdown-it-py
+orjson==3.11.8
+    # via -r /in/core-python.in
 packaging==26.2
+    # via -r /in/core-python.in
+pydantic==2.13.3
+    # via pydantic-settings
+pydantic-core==2.46.3
+    # via pydantic
+pydantic-settings==2.14.0
     # via -r /in/core-python.in
 pygments==2.20.0
     # via rich
 python-dateutil==2.9.0.post0
     # via -r /in/core-python.in
 python-dotenv==1.2.2
-    # via -r /in/core-python.in
+    # via
+    #   -r /in/core-python.in
+    #   pydantic-settings
 pyyaml==6.0.3
     # via -r /in/core-python.in
 referencing==0.37.0
@@ -76,7 +88,14 @@ typer==0.25.0
 typing-extensions==4.15.0
     # via
     #   -r /in/core-python.in
+    #   pydantic
+    #   pydantic-core
     #   referencing
+    #   typing-inspection
+typing-inspection==0.4.2
+    # via
+    #   pydantic
+    #   pydantic-settings
 urllib3==2.6.3
     # via
     #   -r /in/core-python.in

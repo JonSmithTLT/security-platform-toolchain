@@ -84,3 +84,8 @@ __pycache__/
 
 # Personal local Make overrides — never commit
 Makefile.local
+
+# Codex/local scratch
+.codex
+.codex/
+release-build.log

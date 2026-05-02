@@ -1,9 +1,13 @@
+asttokens==3.0.1
+    # via stack-data
 coloredlogs==15.0.1
     # via -r /in/failure-log-analysis.in
 dateparser==1.4.0
     # via -r /in/failure-log-analysis.in
 deepdiff==9.0.0
     # via -r /in/failure-log-analysis.in
+executing==2.2.1
+    # via stack-data
 humanfriendly==10.0
     # via coloredlogs
 jsonpath-ng==1.8.0
@@ -12,6 +16,8 @@ loguru==0.7.3
     # via -r /in/failure-log-analysis.in
 orderly-set==5.5.0
     # via deepdiff
+pure-eval==0.2.3
+    # via stack-data
 python-dateutil==2.9.0.post0
     # via dateparser
 python-json-logger==4.1.0
@@ -26,9 +32,15 @@ regex==2026.4.4
     #   dateparser
 ruamel-yaml==0.19.1
     # via -r /in/failure-log-analysis.in
+simplejson==4.1.1
+    # via -r /in/failure-log-analysis.in
 six==1.17.0
     # via python-dateutil
+stack-data==0.6.3
+    # via -r /in/failure-log-analysis.in
 structlog==25.5.0
+    # via -r /in/failure-log-analysis.in
+tblib==3.2.2
     # via -r /in/failure-log-analysis.in
 tomli-w==1.2.0
     # via -r /in/failure-log-analysis.in

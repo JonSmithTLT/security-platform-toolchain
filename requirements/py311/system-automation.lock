@@ -33,8 +33,15 @@ invoke==2.2.1
     #   -r /in/system-automation.in
     #   fabric
     #   paramiko
+linkify-it-py==2.1.0
+    # via markdown-it-py
 markdown-it-py==4.0.0
-    # via rich
+    # via
+    #   mdit-py-plugins
+    #   rich
+    #   textual
+mdit-py-plugins==0.5.0
+    # via textual
 mdurl==0.1.2
     # via markdown-it-py
 paramiko==4.0.0
@@ -42,9 +49,15 @@ paramiko==4.0.0
 pexpect==4.9.0
     # via -r /in/system-automation.in
 platformdirs==4.9.6
-    # via -r /in/system-automation.in
+    # via
+    #   -r /in/system-automation.in
+    #   textual
 plumbum==1.10.0
     # via -r /in/system-automation.in
+prompt-toolkit==3.0.52
+    # via
+    #   -r /in/system-automation.in
+    #   questionary
 psutil==7.1.1
     # via -r /in/system-automation.in
 ptyprocess==0.7.0
@@ -56,16 +69,21 @@ pydantic==2.13.3
 pydantic-core==2.46.3
     # via pydantic
 pygments==2.20.0
-    # via rich
+    # via
+    #   rich
+    #   textual
 pynacl==1.6.2
     # via paramiko
 python-crontab==3.3.0
     # via -r /in/system-automation.in
 python-on-whales==0.81.0
     # via -r /in/system-automation.in
+questionary==2.1.1
+    # via -r /in/system-automation.in
 rich==15.0.0
     # via
     #   -r /in/system-automation.in
+    #   textual
     #   typer
 schedule==1.2.2
     # via -r /in/system-automation.in
@@ -77,6 +95,8 @@ shellingham==1.5.4
     #   typer
 subprocess-tee==0.4.2
     # via -r /in/system-automation.in
+textual==8.2.5
+    # via -r /in/system-automation.in
 typer==0.25.1
     # via -r /in/system-automation.in
 typing-extensions==4.15.0
@@ -84,8 +104,13 @@ typing-extensions==4.15.0
     #   pydantic
     #   pydantic-core
     #   python-on-whales
+    #   textual
     #   typing-inspection
 typing-inspection==0.4.2
     # via pydantic
+uc-micro-py==2.0.0
+    # via linkify-it-py
+wcwidth==0.6.0
+    # via prompt-toolkit
 wrapt==2.1.2
     # via deprecated

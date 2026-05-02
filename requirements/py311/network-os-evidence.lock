@@ -1,7 +1,9 @@
 appdirs==1.4.4
     # via pyshark
 dnspython==2.8.0
-    # via -r /in/network-os-evidence.in
+    # via
+    #   -r /in/network-os-evidence.in
+    #   pymongo
 dpkt==1.9.8
     # via -r /in/network-os-evidence.in
 ldap3==2.9.1
@@ -22,6 +24,8 @@ puremagic==1.30
     # via -r /in/network-os-evidence.in
 pyasn1==0.6.3
     # via ldap3
+pymongo==4.17.0
+    # via -r /in/network-os-evidence.in
 pyroute2==0.9.6
     # via -r /in/network-os-evidence.in
 pyshark==0.6

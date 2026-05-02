@@ -32,23 +32,33 @@ docker rm "${EXTRACT_ID}" && trap - EXIT
 run_group_smoke() {
     local group="$1"
     local optional="${2:-false}"
+    local experimental="${3:-false}"
     local lock_file="${OUT_DIR}/requirements/${group}.lock"
     local wheel_dir="${OUT_DIR}/wheelhouse/${group}"
+    local allow_optional_failures="${ALLOW_OPTIONAL_SMOKE_FAILURES:-0}"
 
     if [[ ! -f "${lock_file}" ]]; then
-        if [[ "${optional}" == "true" ]]; then
+        if [[ "${experimental}" == "true" ]]; then
+            warn "experimental group '${group}': lock file missing, skipping"
+            return 0
+        fi
+        if [[ "${optional}" == "true" && "${allow_optional_failures}" == "1" ]]; then
             warn "optional group '${group}': lock file missing, skipping"
             return 0
         fi
-        fail "required group '${group}': lock file not found at ${lock_file}"
+        fail "group '${group}': lock file not found at ${lock_file}"
     fi
 
     if [[ ! -d "${wheel_dir}" ]] || [[ -z "$(ls -A "${wheel_dir}"/*.whl 2>/dev/null)" ]]; then
-        if [[ "${optional}" == "true" ]]; then
+        if [[ "${experimental}" == "true" ]]; then
+            warn "experimental group '${group}': no wheels found, skipping"
+            return 0
+        fi
+        if [[ "${optional}" == "true" && "${allow_optional_failures}" == "1" ]]; then
             warn "optional group '${group}': no wheels found, skipping"
             return 0
         fi
-        fail "required group '${group}': no wheels under ${wheel_dir}"
+        fail "group '${group}': no wheels under ${wheel_dir}"
     fi
 
     printf '  -- %s\n' "${group}"
@@ -66,7 +76,11 @@ run_group_smoke() {
             /tmp/venv/bin/pip install --quiet --no-index --find-links /wheels/ -r /lock.txt
             ${import_probe}
         " || {
-            if [[ "${optional}" == "true" ]]; then
+            if [[ "${experimental}" == "true" ]]; then
+                warn "experimental group '${group}' smoke failed"
+                return 0
+            fi
+            if [[ "${optional}" == "true" && "${allow_optional_failures}" == "1" ]]; then
                 warn "optional group '${group}' smoke failed"
                 return 0
             fi
@@ -80,8 +94,9 @@ generate_probe() {
     case "${group}" in
     core-python)
         echo "/tmp/venv/bin/python3 -c \"
-import jsonschema, yaml, requests, urllib3, certifi, click, typer, rich
-import dotenv, packaging, tenacity, attr, dateutil, jinja2, tabulate, structlog, tomli
+import jsonschema, yaml, requests, urllib3, certifi, click, typer, rich, pydantic_settings
+import dotenv, packaging, tenacity, attr, dateutil, jinja2, tabulate, structlog, tomli, orjson
+orjson.dumps({'ok': True})
 print('core-python imports OK')
 \""
         ;;
@@ -92,6 +107,12 @@ import httpx, httpcore, orjson, sse_starlette, anyio, sniffio, h11
 from fastapi import FastAPI
 app = FastAPI()
 print('api-future-fastapi imports OK')
+\""
+        ;;
+    api-service-standard)
+        echo "/tmp/venv/bin/python3 -c \"
+import uvicorn, uvloop, httptools, websockets, watchfiles
+print('api-service-standard imports OK')
 \""
         ;;
     normalizers-reporting)
@@ -155,7 +176,7 @@ print('dependency-audit imports OK')
         ;;
     failure-log-analysis)
         echo "/tmp/venv/bin/python3 -c \"
-import structlog, loguru, pythonjsonlogger, coloredlogs, deepdiff, jsonpath_ng, rapidfuzz, regex, dateparser
+import structlog, loguru, tblib, stack_data, pythonjsonlogger, coloredlogs, deepdiff, jsonpath_ng, rapidfuzz, regex, dateparser, simplejson
 from ruamel.yaml import YAML
 import tomli_w
 YAML().load('a: 1')
@@ -179,6 +200,12 @@ duckdb.connect(':memory:').execute('select 1').fetchall()
 print('large-artifact-compression imports OK')
 \""
         ;;
+    llm-client-optional)
+        echo "/tmp/venv/bin/python3 -c \"
+import openai, anthropic, httpx
+print('llm-client-optional imports OK')
+\""
+        ;;
     ml-runtime-light)
         echo "/tmp/venv/bin/python3 -c \"
 import onnxruntime as ort
@@ -188,7 +215,7 @@ print('ml-runtime-light imports OK')
         ;;
     network-os-evidence)
         echo "/tmp/venv/bin/python3 -c \"
-import psutil, pyroute2, netaddr, dns.resolver, scapy.all, dpkt, zmq, ldap3, paho.mqtt.client, pcapng, puremagic
+import psutil, pyroute2, netaddr, dns.resolver, scapy.all, dpkt, zmq, ldap3, pymongo, paho.mqtt.client, pcapng, puremagic
 try:
     import pyshark
 except Exception:
@@ -199,7 +226,7 @@ print('network-os-evidence imports OK')
         ;;
     networking-protocol)
         echo "/tmp/venv/bin/python3 -c \"
-import requests, httpx, aiohttp, websockets, dns.resolver, paramiko, serial
+import requests, httpx, aiofiles, aiohttp, websockets, trio, dns.resolver, paramiko, serial
 import scapy.all as scapy, dpkt, construct, kaitaistruct, google.protobuf, grpc
 from construct import Byte, Struct
 from h2.connection import H2Connection
@@ -212,7 +239,7 @@ print('networking-protocol imports OK')
         echo "/tmp/venv/bin/python3 -c \"
 from lxml import etree
 import bs4, olefile, msoffcrypto, pdfminer, pypdf, docx, pptx
-import openpyxl, xlsxwriter, defusedxml, xmltodict, ijson, orjson, ujson, msgpack, cbor2
+import openpyxl, xlsxwriter, html5lib, bleach, defusedxml, xmltodict, ijson, orjson, ujson, simplejson, msgpack, cbor2
 import construct, bitstruct, filetype
 from construct import Byte, Struct
 try:
@@ -234,7 +261,7 @@ print('profiling-debugging imports OK')
         ;;
     system-automation)
         echo "/tmp/venv/bin/python3 -c \"
-import click, typer, rich, shellingham, sh, plumbum, invoke, fabric, pexpect, psutil
+import click, typer, rich, prompt_toolkit, questionary, textual, shellingham, sh, plumbum, invoke, fabric, pexpect, psutil
 import distro, humanfriendly, colorama, platformdirs, filelock, subprocess_tee
 import python_on_whales, crontab, schedule
 from plumbum import local
@@ -276,8 +303,8 @@ print('packaging-build imports OK')
     reporting-extended)
         echo "/tmp/venv/bin/python3 -c \"
 from lxml import etree
-import jinja2, markdown, pygments, rich, tabulate, bs4, docx, pptx, openpyxl, xlsxwriter, pypdf
-import reportlab
+import jinja2, markdown, mistune, pygments, rich, tabulate, bs4, html5lib, bleach, frontmatter, docx, pptx, openpyxl, xlsxwriter, pypdf
+import reportlab, pydot
 try:
     import weasyprint
 except Exception:
@@ -319,13 +346,19 @@ for group in core-python api-future-fastapi normalizers-reporting testing-dev \
 done
 
 # Optional groups
-for group in data-science-optional dependency-audit failure-log-analysis \
-             fuzzing-optional large-artifact-compression ml-runtime-light \
+for group in data-science-optional api-service-standard dependency-audit failure-log-analysis \
+             fuzzing-optional large-artifact-compression llm-client-optional \
              network-os-evidence networking-protocol profiling-debugging \
              security-parsers system-automation static-analysis-python \
              testing-evidence testing-extended ci-integration packaging-build \
              reporting-extended heavy-security-optional; do
     run_group_smoke "${group}" true
+done
+
+# Experimental groups are carried in the artifact but do not have a supported
+# pass/fail promise until runtime probes pass on representative hosts.
+for group in ml-runtime-light; do
+    run_group_smoke "${group}" true true
 done
 
 printf '\n==> python-wheelhouse-py311 smoke passed: %s\n' "${OUT_DIR}"

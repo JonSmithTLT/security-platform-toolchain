@@ -19,16 +19,18 @@ copy only the wheel groups they need.
 | `rag-light` | BM25, tiktoken, NetworkX | No |
 | `security-research-python` | cryptography, pyelftools, pefile, capstone, yara | No |
 | `data-science-optional` | numpy, scipy, scikit-learn, pandas, pyarrow | Yes |
+| `api-service-standard` | Uvicorn standard runtime extras for service images | Yes |
 | `dependency-audit` | pip audit, SBOM, license, environment evidence helpers | Yes |
 | `failure-log-analysis` | Logs, traceback, diff, fuzzy match, JSONPath parsing | Yes |
 | `fuzzing-optional` | Hypothesis-adjacent fuzz/property test helpers | Yes |
 | `large-artifact-compression` | DuckDB, Polars, compression, binary encodings | Yes |
-| `ml-runtime-light` | onnxruntime (CPU) | Yes |
+| `llm-client-optional` | OpenAI/Anthropic SDK adapters for org LLM proxy clients | Yes |
+| `ml-runtime-light` | onnxruntime (CPU); experimental until host runtime probes pass | Yes |
 | `network-os-evidence` | OS/network evidence, ZeroMQ, LDAP, MQTT, packet helpers | Yes |
 | `networking-protocol` | HTTP, async, DNS, SSH/serial, packet/protocol helpers | Yes |
 | `profiling-debugging` | Profiling, memory, object graph, runtime debug helpers | Yes |
 | `security-parsers` | File format, document, binary, XML/JSON parser helpers | Yes |
-| `system-automation` | Subprocess, shell, host, and Docker CLI automation helpers | Yes |
+| `system-automation` | Subprocess, shell, host, Docker CLI, and terminal app helpers | Yes |
 | `static-analysis-python` | Python lint/type/security analysis helpers | Yes |
 | `testing-evidence` | Rich pytest reports and rerun/random/repeat helpers | Yes |
 | `testing-extended` | Parallel/retry/benchmark tests, mocks, fixtures, containers | Yes |
@@ -37,7 +39,7 @@ copy only the wheel groups they need.
 | `reporting-extended` | Docs, Office/PDF, report rendering, rich output | Yes |
 | `heavy-security-optional` | Native-heavy RE/security analysis packages | Yes |
 
-Current broad-catalog candidate size: about 660 MB of wheel files across 670
+Current broad-catalog candidate size: about 679 MB of wheel files across 738
 wheels before Docker image overhead.
 
 See `docs/python-311-wheelhouse-support-matrix.md` for current fetch and smoke
@@ -79,15 +81,20 @@ RUN pip install --no-index --find-links /opt/wheels/core-python/ -r /opt/wheels/
 - Accepted ABI tags: `cp311`, `abi3`, `py3-none-any`
 - Lock files are pinned via `pip-compile --resolver=backtracking`
 - Heavy ML (torch, transformers, faiss, sentence-transformers) is explicitly excluded
-- Optional groups may fail fetch without blocking the required groups
+- Supported optional groups must fetch and smoke successfully; experimental
+  groups may warn without blocking release validation
 - `python-magic` requires `libmagic` installed in the runtime image
 - `weasyprint`, database clients, and native security packages may require
   additional runtime OS libraries even when their Python wheels install cleanly
 - `onnxruntime` wheels download for this target, but the smoke container may
   reject its native extension if executable-stack policy is locked down; keep
-  `ml-runtime-light` optional until it passes on representative Rocky 8 hosts
+  `ml-runtime-light` experimental until it passes on representative Rocky 8
+  hosts
 - `pyshark` imports but requires `tshark` for useful runtime work
-- `hexdump`, `ropper`/`filebytes`, `keystone-engine`, `watchdog`, and
-  `python-jenkins`/`multi-key-dict` are excluded from the binary-only
-  wheelhouse candidate because they did not produce compatible CPython 3.11
-  `manylinux_2_17_x86_64` wheels during validation
+- `hexdump`, `ropper`/`filebytes`, `keystone-engine`, `watchdog`,
+  `python-jenkins`/`multi-key-dict`, `pymaven`, `aiodns`/`pycares`,
+  `python-afl`, `python-systemd`, `netifaces`, `python-snappy`, and `scalene`
+  are excluded from the paved binary-only wheelhouse candidate because they
+  either did not produce compatible CPython 3.11 `manylinux_2_17_x86_64`
+  wheels during validation or are better handled as host/tool-image-specific
+  native/runtime integrations

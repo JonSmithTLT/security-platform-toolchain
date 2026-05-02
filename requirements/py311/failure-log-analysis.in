@@ -2,6 +2,8 @@
 # CPython 3.11 / Rocky 8-compatible linux_x86_64 — logs, traceback, and failure artifact parsing
 structlog
 loguru
+tblib
+stack-data
 python-json-logger
 coloredlogs
 deepdiff
@@ -12,3 +14,4 @@ regex
 dateparser
 ruamel.yaml
 tomli-w
+simplejson

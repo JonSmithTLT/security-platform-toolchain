@@ -1,0 +1,32 @@
+anyio==4.13.0
+    # via watchfiles
+click==8.3.3
+    # via uvicorn
+h11==0.16.0
+    # via uvicorn
+httptools==0.6.4
+    # via
+    #   -r /in/api-service-standard.in
+    #   uvicorn
+idna==3.13
+    # via anyio
+python-dotenv==1.2.2
+    # via uvicorn
+pyyaml==6.0.3
+    # via uvicorn
+typing-extensions==4.15.0
+    # via anyio
+uvicorn==0.46.0
+    # via -r /in/api-service-standard.in
+uvloop==0.22.1
+    # via
+    #   -r /in/api-service-standard.in
+    #   uvicorn
+watchfiles==1.1.1
+    # via
+    #   -r /in/api-service-standard.in
+    #   uvicorn
+websockets==16.0
+    # via
+    #   -r /in/api-service-standard.in
+    #   uvicorn

@@ -1,0 +1,8 @@
+# requirements/py311/api-service-standard.in
+# CPython 3.11 / Rocky 8-compatible linux_x86_64 — optional production-ish API service runtime
+uvicorn[standard]
+uvloop
+# Keep manylinux_2_17_x86_64 cp311 wheel availability.
+httptools<=0.6.4
+websockets
+watchfiles

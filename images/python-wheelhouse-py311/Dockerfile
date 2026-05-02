@@ -14,4 +14,4 @@ COPY data-bundles/sources/python-wheels/py311/ /wheelhouse/py311/
 COPY requirements/py311/                       /requirements/py311/
 COPY data-bundles/sources/python-wheels/py311/locks/ /requirements/py311/
 
-CMD ["find", "/wheelhouse/py311", "-name", "*.whl", "-printf", "%f\n"]
+CMD ["find", "/wheelhouse/py311", "-name", "*.whl", "-print"]

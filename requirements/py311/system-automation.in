@@ -3,6 +3,9 @@
 click
 typer
 rich
+prompt-toolkit
+questionary
+textual
 shellingham
 sh
 plumbum

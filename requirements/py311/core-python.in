@@ -2,6 +2,7 @@
 # CPython 3.11 / linux_x86_64 — core runtime utilities
 jsonschema
 pyyaml
+orjson
 requests
 urllib3
 certifi
@@ -11,6 +12,7 @@ click
 typer
 rich
 python-dotenv
+pydantic-settings
 packaging
 tenacity
 attrs
