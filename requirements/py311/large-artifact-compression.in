@@ -1,7 +1,7 @@
 # requirements/py311/large-artifact-compression.in
 # CPython 3.11 / Rocky 8-compatible linux_x86_64 — large artifacts, columnar data, and compression
 # Keep manylinux_2_17_x86_64 cp311 wheel availability.
-duckdb<=1.2.2
+duckdb<=1.5.2
 zstandard
 lz4
 polars
