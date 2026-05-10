@@ -3,7 +3,7 @@
 # Base image for all security-platform-toolchain tool images.
 # Provides: Python 3, common OS packages, shared scripts, and non-root user.
 
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 
 LABEL org.opencontainers.image.source="https://github.com/JonSmithTLT/security-platform-toolchain" \
       org.opencontainers.image.description="SPT base image" \
